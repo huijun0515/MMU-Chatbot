@@ -15,7 +15,10 @@ import uuid
 import datetime
 import streamlit as st
 
-ANNOUNCE_DIR = "./announcements"
+from core import config
+from core.logging_setup import logger
+
+ANNOUNCE_DIR = config.ANNOUNCE_DIR
 ANNOUNCE_JSON = os.path.join(ANNOUNCE_DIR, "announcements.json")
 
 
@@ -32,7 +35,8 @@ def _load():
     try:
         with open(ANNOUNCE_JSON, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except (OSError, json.JSONDecodeError):
+        logger.exception("Failed to load %s — announcements list will appear empty", ANNOUNCE_JSON)
         return []
 
 

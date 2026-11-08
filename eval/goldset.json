@@ -1,0 +1,47 @@
+[
+  {
+    "question": "What time does the Siti Hasmah Digital Library open on weekdays during trimester?",
+    "expected_source": "MMU Melaka Facilities open hour.pdf",
+    "expected_keywords": ["9:00 am", "10:00 pm"]
+  },
+  {
+    "question": "What are the Financial Department's operating hours?",
+    "expected_source": "MMU Melaka Facilities open hour.pdf",
+    "expected_keywords": ["9:00 am", "5:00 pm"]
+  },
+  {
+    "question": "What are the Admission Office's operating hours?",
+    "expected_source": "MMU Melaka Facilities open hour.pdf",
+    "expected_keywords": ["8:30 am", "5:30 pm"]
+  },
+  {
+    "question": "When is Labour Day according to the 2026 academic calendar?",
+    "expected_source": "2026 Academic Calendar.pdf",
+    "expected_keywords": ["1 may", "labour day"]
+  },
+  {
+    "question": "When does the Christmas holiday fall in the 2026 academic calendar?",
+    "expected_source": "2026 Academic Calendar.pdf",
+    "expected_keywords": ["25 dec", "christmas"]
+  },
+  {
+    "question": "Where is the finance office located?",
+    "expected_source": "Campus Directory",
+    "expected_keywords": ["administration building", "level 1"]
+  },
+  {
+    "question": "Where is the Student Services Centre?",
+    "expected_source": "Campus Directory",
+    "expected_keywords": ["administration building"]
+  },
+  {
+    "question": "Where is SSC?",
+    "expected_source": "Campus Directory",
+    "expected_keywords": ["student services centre"]
+  },
+  {
+    "question": "Where is the library?",
+    "expected_source": "Campus Directory",
+    "expected_keywords": ["library building"]
+  }
+]

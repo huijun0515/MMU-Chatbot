@@ -17,7 +17,8 @@ page's text is shown instead, so the feature still works.
 import os
 import streamlit as st
 
-from vector_store import get_vector_db, DATA_DIR
+from core.config import DATA_DIR
+from core.vector_store import get_vector_db
 
 # Optional: PyMuPDF for rendering a page as an image
 try:

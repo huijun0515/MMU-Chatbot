@@ -10,20 +10,17 @@ live Chroma DB, with duplicate detection and rate-limit auto-retry.
 """
 
 import os
-import time
 import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vector_store import get_vector_db, DATA_DIR
+from core import config
+from core.vector_store import get_vector_db, embed_with_retry
+from core.logging_setup import logger
 from announcements import render_admin_announcements
 from locations import render_admin_locations
 
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
-BATCH_SIZE = 15          # chunks embedded per API batch
-NORMAL_PAUSE = 1.5       # polite pause between batches (seconds)
-COOLDOWN = 45            # pause when the free-tier rate limit is hit (seconds)
+DATA_DIR = config.DATA_DIR
 
 
 # ──────────────────────────────────────────────────────────────
@@ -35,6 +32,7 @@ def _list_sources(vector_db):
     try:
         data = vector_db._collection.get(include=["metadatas"])
     except Exception:
+        logger.exception("Failed to read indexed sources from the vector store")
         return {}
     counts = {}
     for md in data.get("metadatas", []) or []:
@@ -63,30 +61,14 @@ def _delete_source(vector_db, name):
         try:
             os.remove(path)
         except OSError:
-            pass
+            logger.exception("Failed to delete stored PDF file '%s'", path)
 
 
 def _add_in_batches(vector_db, chunks, status):
-    """Embed + store chunks in small batches, retrying on rate limits."""
-    total = len(chunks)
-    added = 0
+    """Embed + store chunks in small batches, retrying on rate limits
+    (a no-op concern with the default local embedding backend)."""
     bar = st.progress(0.0)
-    for i in range(0, total, BATCH_SIZE):
-        batch = chunks[i:i + BATCH_SIZE]
-        while True:
-            try:
-                vector_db.add_documents(batch)
-                break
-            except Exception as e:
-                msg = str(e).lower()
-                if "429" in msg or "resource_exhausted" in msg or "quota" in msg:
-                    status.warning(f"🚦 Rate limit hit — cooling down {COOLDOWN}s…")
-                    time.sleep(COOLDOWN)
-                else:
-                    raise
-        added += len(batch)
-        bar.progress(min(added / total, 1.0))
-        time.sleep(NORMAL_PAUSE)
+    added = embed_with_retry(vector_db, chunks, status=status, progress_cb=bar.progress)
     bar.empty()
     return added
 
@@ -115,7 +97,7 @@ def _ingest_file(vector_db, uploaded, replace, status):
         return 0
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+        chunk_size=config.CHUNK_SIZE, chunk_overlap=config.CHUNK_OVERLAP
     )
     chunks = splitter.split_documents(pages)
 

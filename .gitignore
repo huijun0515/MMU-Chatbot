@@ -2,3 +2,7 @@ fyp_env/
 __pycache__/
 *.pyc
 .streamlit/secrets.toml
+
+# Generated/runtime data — rebuild with build_database.py, not versioned
+chroma_db/
+data/query_log.jsonl

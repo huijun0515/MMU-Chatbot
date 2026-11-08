@@ -20,13 +20,14 @@ Public pieces used elsewhere:
 import os
 import re
 import json
-import time
 import streamlit as st
 from langchain_core.documents import Document
 
-from vector_store import get_vector_db
+from core import config
+from core.vector_store import get_vector_db, embed_with_retry
+from core.logging_setup import logger
 
-LOCATIONS_DIR = "./locations"
+LOCATIONS_DIR = config.LOCATIONS_DIR
 LOCATIONS_JSON = os.path.join(LOCATIONS_DIR, "locations.json")
 
 CATEGORIES = ["Classroom", "Lecture Hall", "Lab", "Office", "Facility", "Landmark", "Other"]
@@ -76,7 +77,8 @@ def _load():
     try:
         with open(LOCATIONS_JSON, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except (OSError, json.JSONDecodeError):
+        logger.exception("Failed to load %s — locations list will appear empty", LOCATIONS_JSON)
         return []
 
 
@@ -109,7 +111,9 @@ def image_path(image_name):
 # ──────────────────────────────────────────────────────────────
 #  Vector-store sync (the hybrid part)
 # ──────────────────────────────────────────────────────────────
-def _to_document(rec):
+def location_to_document(rec):
+    """Build the Document a location record is embedded as. Public: also
+    used by core/rag_chain.py to inject an exact-match location into context."""
     aliases = ", ".join(rec.get("aliases", []) or [])
     parts = [f"Campus location: {rec.get('name','')}"]
     if aliases:
@@ -137,24 +141,11 @@ def _to_document(rec):
     return Document(page_content=text, metadata=meta)
 
 
-def _add_with_retry(vector_db, docs):
-    while True:
-        try:
-            vector_db.add_documents(docs)
-            return
-        except Exception as e:
-            m = str(e).lower()
-            if "429" in m or "resource_exhausted" in m or "quota" in m:
-                time.sleep(45)
-            else:
-                raise
-
-
 def _delete_from_vectordb(vector_db, loc_id):
     try:
         vector_db._collection.delete(where={"loc_id": loc_id})
     except Exception:
-        pass
+        logger.exception("Failed to delete location '%s' from the vector store", loc_id)
 
 
 def upsert_location(rec, image_file=None):
@@ -173,7 +164,7 @@ def upsert_location(rec, image_file=None):
 
     vdb = get_vector_db()
     _delete_from_vectordb(vdb, rec["id"])
-    _add_with_retry(vdb, [_to_document(rec)])
+    embed_with_retry(vdb, [location_to_document(rec)])
 
 
 def delete_location(loc_id):
@@ -197,9 +188,9 @@ def resync_all():
         vdb._collection.delete(where={"type": "location"})
     except Exception:
         pass
-    docs = [_to_document(r) for r in _load()]
+    docs = [location_to_document(r) for r in _load()]
     if docs:
-        _add_with_retry(vdb, docs)
+        embed_with_retry(vdb, docs)
     return len(docs)
 
 
