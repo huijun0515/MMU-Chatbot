@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#E31837"  # MMU Red (Used for buttons and highlights)
+backgroundColor = "#FFFFFF" # Clean white background
+secondaryBackgroundColor = "#F0F2F6" # Light grey for chat bubbles
+textColor = "#262730" # Dark grey for readable text
+font = "sans serif"

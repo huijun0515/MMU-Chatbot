@@ -1,0 +1,46 @@
+[
+  {
+    "id": "library",
+    "name": "Main Library",
+    "aliases": [
+      "Library",
+      "Perpustakaan"
+    ],
+    "category": "Facility",
+    "building": "Library Building",
+    "floor": "Ground–Level 3",
+    "description": "The central campus library with study zones, discussion rooms and computer labs.",
+    "directions": "From the main entrance lobby, head straight past the admin counter; the library is the large glass building on your left.",
+    "landmarks": "Next to the student cafeteria; opposite the main lecture blocks.",
+    "image": ""
+  },
+  {
+    "id": "finance-office",
+    "name": "Finance Office",
+    "aliases": [
+      "Bursary",
+      "Fees Office"
+    ],
+    "category": "Office",
+    "building": "Administration Building",
+    "floor": "Level 1",
+    "description": "Handles fee payments, financial aid and billing enquiries.",
+    "directions": "Enter the Administration Building main door, take the stairs or lift to Level 1, turn right; the Finance Office is the second door.",
+    "landmarks": "Beside the Student Services Centre.",
+    "image": ""
+  },
+  {
+    "id": "ssc",
+    "name": "Student Services Centre",
+    "aliases": [
+      "SSC"
+    ],
+    "category": "Office",
+    "building": "Administration Building",
+    "floor": "Ground Level",
+    "description": "One-stop centre for student matters: registration, letters, ID cards and general enquiries.",
+    "directions": "On the ground floor of the Administration Building, immediately to the left of the main entrance.",
+    "landmarks": "Below the Finance Office; near the covered walkway.",
+    "image": ""
+  }
+]
