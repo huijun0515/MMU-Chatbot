@@ -1,133 +1,299 @@
 """
-Evaluation harness — serves FYP Objective 3 (measure retrieval accuracy and
-answer relevancy vs. a keyword-search baseline).
+Evaluation harness — serves FYP Objective 3 (retrieval accuracy and answer
+relevancy vs. a keyword-search baseline).
 
-For each question in eval/goldset.json:
-  1. RAG retrieval  — the same hybrid retriever used in the live chat
-     (location lookup + semantic Chroma search) returns top-k sources;
-     hit = expected_source is among them.
-  2. BM25 baseline  — a classic keyword/BM25 index built from every chunk
-     currently in the vector store; same hit-rate check, no embeddings
-     involved at all. This is the "vs. a keyword-search baseline" comparison.
-  3. Answer relevancy (optional, needs GEMINI_API_KEY) — runs the full
-     chat chain and checks whether any of the question's expected_keywords
-     show up in the generated answer. A cheap, deterministic proxy for
-     relevancy that needs no extra LLM-judge calls.
+Every question in eval/goldset.json is one of two kinds:
+
+  answerable   the answer is in ./data. Two retrieval checks on the top-k chunks:
+                 source-hit    a chunk from the expected FILE was retrieved
+                               (lenient — one handbook chunk "hits" for any
+                               handbook question, so this overstates quality)
+                 evidence-hit  a retrieved chunk from the expected file actually
+                               CONTAINS the evidence text (strict — this is the
+                               honest retrieval metric)
+  no_answer    the answer is NOT in ./data. The correct behaviour is no context,
+               no sources and a "couldn't find" reply.
+
+The BM25 baseline is a plain keyword index over the same chunks (no embeddings,
+no gating), scored the same way.
 
 Usage:
-    python evaluate.py
+    python evaluate.py                    # retrieval metrics only: local, fast, no API
+    python evaluate.py --with-llm         # + generated-answer checks (needs GEMINI_API_KEY)
+    python evaluate.py --validate         # check the gold set against the live index
+    python evaluate.py --k 5 --tag k5     # try another top-k; results saved as eval/results/k5.json
 """
 
+import argparse
 import json
+import os
+import re
 import sys
+import time
+from collections import defaultdict
 
 from rank_bm25 import BM25Okapi
 
 from core import config
 from core.vector_store import build_vector_db
-from core.rag_chain import retrieve_documents
+from core.retrieval import Retriever
+
+GOLDSET_PATH = "eval/goldset.json"
+RESULTS_DIR = "eval/results"
+LLM_CALL_SPACING_SECONDS = 7  # stay under the free tier's requests-per-minute limit
 
 
-def _tokenize(text):
-    return text.lower().split()
+def norm_text(s):
+    """Lowercase, straighten quotes/dashes, collapse whitespace — applied to both
+    the evidence strings and the chunk text before comparing."""
+    s = s.lower()
+    for a, b in (("’", "'"), ("‘", "'"), ("“", '"'), ("”", '"'), ("–", "-"), ("—", "-"), ("−", "-")):
+        s = s.replace(a, b)
+    return " ".join(s.split())
 
 
-def load_goldset(path="eval/goldset.json"):
+def tokenize(s):
+    return re.findall(r"\w+", s.lower())
+
+
+def load_goldset(path=GOLDSET_PATH):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def build_bm25_corpus(vector_db):
-    """Pull every chunk currently indexed and build a BM25 index over it."""
+def load_corpus(vector_db):
+    """Every chunk currently indexed: [{"text", "source"}]."""
     data = vector_db._collection.get(include=["documents", "metadatas"])
-    texts = data.get("documents", []) or []
-    metadatas = data.get("metadatas", []) or []
-    tokenized = [_tokenize(t) for t in texts]
-    bm25 = BM25Okapi(tokenized) if tokenized else None
-    sources = [md.get("source_file", "Unknown") for md in metadatas]
-    return bm25, sources
+    return [
+        {"text": t, "source": (m or {}).get("source_file", "Unknown")}
+        for t, m in zip(data["documents"], data["metadatas"])
+    ]
 
 
-def rag_retrieve_sources(vector_db, list_locations_fn, question):
-    """The live retriever itself (exact location match + relevance-gated semantic search)."""
-    docs = retrieve_documents(vector_db, list_locations_fn, question)
-    return [d.metadata.get("source_file", "Unknown") for d in docs]
+# ── gold-set validation ────────────────────────────────────────────────────
+def validate(goldset, corpus):
+    """Prove the gold set is sound against the live index: every answerable
+    question's evidence really occurs in a chunk of its expected file, and every
+    no_answer question's key terms really occur nowhere. Returns #problems."""
+    by_source = defaultdict(list)
+    for c in corpus:
+        by_source[c["source"]].append(norm_text(c["text"]))
+    all_chunks = [t for chunks in by_source.values() for t in chunks]
+
+    problems = 0
+    for item in goldset:
+        if item["kind"] == "answerable":
+            chunks = by_source.get(item["expected_source"])
+            if not chunks:
+                print(f"FAIL {item['id']}: expected_source {item['expected_source']!r} is not in the index")
+                problems += 1
+                continue
+            for ev in item["evidence"]:
+                n = sum(norm_text(ev) in t for t in chunks)
+                if n == 0:
+                    print(f"FAIL {item['id']}: evidence {ev!r} not found in any chunk of {item['expected_source']}")
+                    problems += 1
+                else:
+                    print(f"ok   {item['id']}: evidence in {n} chunk(s) of {item['expected_source']}")
+        else:
+            for pat in item.get("absent_terms", []):
+                n = sum(bool(re.search(pat, t)) for t in all_chunks)
+                if n:
+                    print(f"FAIL {item['id']}: term {pat!r} DOES occur in {n} chunk(s) — question may be answerable")
+                    problems += 1
+                else:
+                    print(f"ok   {item['id']}: {pat!r} occurs in no chunk")
+    print(f"\n{problems} problem(s) across {len(goldset)} questions")
+    return problems
 
 
-def bm25_retrieve_sources(bm25, sources, question, k):
-    if bm25 is None:
-        return []
-    scores = bm25.get_scores(_tokenize(question))
-    ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
-    return [sources[i] for i in ranked]
+# ── retrieval scoring ──────────────────────────────────────────────────────
+def score_chunks(item, chunks):
+    """chunks: [{"text", "source"}] actually retrieved. Returns (source_hit, evidence_hit)."""
+    expected = item["expected_source"]
+    from_expected = [c for c in chunks if c["source"] == expected]
+    evidence = [norm_text(e) for e in item["evidence"]]
+    ev_hit = any(e in norm_text(c["text"]) for c in from_expected for e in evidence)
+    return bool(from_expected), ev_hit
 
 
-def run_answer_relevancy(questions):
-    """Optional: generate real answers and keyword-match them. Skipped
-    gracefully if no Gemini API key is configured."""
-    if not config.get_secret("GEMINI_API_KEY"):
-        print("\n(No GEMINI_API_KEY configured — skipping answer-relevancy pass.)")
-        return None
+def docs_to_chunks(docs):
+    return [{"text": d.page_content, "source": d.metadata.get("source_file", "Unknown")} for d in docs]
 
-    from core.rag_chain import build_chat_pipeline, ask
+
+class Bm25Baseline:
+    """Plain BM25 over every chunk — the keyword-search baseline."""
+
+    def __init__(self, corpus):
+        self.corpus = corpus
+        self.index = BM25Okapi([tokenize(c["text"]) for c in corpus])
+
+    def top(self, question, k):
+        scores = self.index.get_scores(tokenize(question))
+        best = sorted(range(len(scores)), key=scores.__getitem__, reverse=True)[:k]
+        return [self.corpus[i] for i in best]
+
+
+# ── optional LLM pass ──────────────────────────────────────────────────────
+def _ask_with_retry(pipeline, question):
+    from core.rag_chain import ask
+
+    for attempt in range(4):
+        try:
+            return ask(pipeline, question, [], log=False)
+        except Exception as e:  # noqa: BLE001 - only rate limits are retried
+            msg = str(e).lower()
+            if attempt < 3 and ("429" in msg or "quota" in msg or "resource_exhausted" in msg):
+                print(f"   (rate limited, waiting {config.EMBED_COOLDOWN_SECONDS}s)")
+                time.sleep(config.EMBED_COOLDOWN_SECONDS)
+            else:
+                raise
+
+
+def llm_pass(goldset, vector_db):
     from locations import list_locations
+    from core.rag_chain import build_chat_pipeline
 
-    pipeline = build_chat_pipeline(build_vector_db(), list_locations)
-    results = []
-    for item in questions:
-        response = ask(pipeline, item["question"], [], log=False)
-        answer = response["answer"].lower()
-        keywords = [k.lower() for k in item.get("expected_keywords", [])]
-        hit = any(k in answer for k in keywords) if keywords else None
-        results.append(hit)
+    pipeline = build_chat_pipeline(vector_db, list_locations)
+    results = {}
+    for i, item in enumerate(goldset):
+        if i:
+            time.sleep(LLM_CALL_SPACING_SECONDS)
+        r = _ask_with_retry(pipeline, item["question"])
+        answer = r["answer"].lower()
+        entry = {"grounded": r["grounded"], "sources": r["sources"], "answer": r["answer"]}
+        if item["kind"] == "answerable":
+            kws = [k.lower() for k in item.get("expected_keywords", [])]
+            entry["relevant"] = any(k in answer for k in kws) if kws else None
+        else:
+            entry["correct_no_answer"] = (not r["grounded"]) and r["sources"] == []
+        results[item["id"]] = entry
+        print(f"   llm {item['id']} done")
     return results
 
 
+# ── reporting ──────────────────────────────────────────────────────────────
+def pct(n, d):
+    return f"{n}/{d} ({100 * n / d:.0f}%)" if d else "n/a"
+
+
 def main():
-    goldset = load_goldset()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--goldset", default=GOLDSET_PATH)
+    ap.add_argument("--k", type=int, help="override config.RETRIEVER_K for this run")
+    ap.add_argument("--mode", help="override config.RETRIEVAL_MODE for this run (vector|hybrid)")
+    ap.add_argument("--fusion", help="override config.HYBRID_FUSION for this run (interleave|rrf)")
+    ap.add_argument("--with-llm", action="store_true", help="also generate answers (calls Gemini)")
+    ap.add_argument("--validate", action="store_true", help="check the gold set against the index and exit")
+    ap.add_argument("--tag", default=None, help="save results to eval/results/<tag>.json")
+    args = ap.parse_args()
+
+    if args.k:
+        config.RETRIEVER_K = args.k
+    if args.mode:
+        config.RETRIEVAL_MODE = args.mode
+    if args.fusion:
+        config.HYBRID_FUSION = args.fusion
     k = config.RETRIEVER_K
 
-    print(f"Loaded {len(goldset)} gold questions. Embedding backend: {config.EMBEDDING_BACKEND}\n")
-
+    goldset = load_goldset(args.goldset)
     vector_db = build_vector_db()
+    corpus = load_corpus(vector_db)
+
+    if args.validate:
+        return 1 if validate(goldset, corpus) else 0
+
     from locations import list_locations
 
-    bm25, bm25_sources = build_bm25_corpus(vector_db)
+    mode = config.RETRIEVAL_MODE + (f"/{config.HYBRID_FUSION}" if config.RETRIEVAL_MODE == "hybrid" else "")
+    print(f"{len(goldset)} questions | backend={config.EMBEDDING_BACKEND} | retrieval={mode} | "
+          f"k={k} | min_relevance={config.MIN_RELEVANCE_SCORE} | {len(corpus)} chunks indexed\n")
 
+    bm25 = Bm25Baseline(corpus)
+    retriever = Retriever(vector_db, list_locations)
     rows = []
-    rag_hits = 0
-    bm25_hits = 0
     for item in goldset:
-        q, expected = item["question"], item["expected_source"]
+        q = item["question"]
+        rag_chunks = docs_to_chunks(retriever.retrieve(q))
+        row = {"id": item["id"], "kind": item["kind"], "category": item["category"], "question": q,
+               "expected_source": item.get("expected_source"), "rag_n_chunks": len(rag_chunks),
+               "rag_sources": sorted({c["source"] for c in rag_chunks})}
+        if item["kind"] == "answerable":
+            row["rag_src"], row["rag_ev"] = score_chunks(item, rag_chunks)
+            row["bm25_src"], row["bm25_ev"] = score_chunks(item, bm25.top(q, k))
+        rows.append(row)
 
-        rag_sources = rag_retrieve_sources(vector_db, list_locations, q)
-        rag_hit = expected in rag_sources
-        rag_hits += rag_hit
+    llm = llm_pass(goldset, vector_db) if args.with_llm else None
 
-        bm_sources = bm25_retrieve_sources(bm25, bm25_sources, q, k)
-        bm_hit = expected in bm_sources
-        bm25_hits += bm_hit
+    yn = lambda b: "hit" if b else "MISS"
+    print(f"{'id':<4} {'category':<11} {'question':<46} {'RAG src':<8} {'RAG ev':<7} {'BM25 src':<9} {'BM25 ev':<8}"
+          + ("  LLM" if llm else ""))
+    print("-" * (98 + (6 if llm else 0)))
+    for r in rows:
+        q = (r["question"][:43] + "...") if len(r["question"]) > 46 else r["question"]
+        if r["kind"] == "answerable":
+            cells = f"{yn(r['rag_src']):<8} {yn(r['rag_ev']):<7} {yn(r['bm25_src']):<9} {yn(r['bm25_ev']):<8}"
+        else:
+            cells = f"{str(r['rag_n_chunks']) + ' chunks':<8} {'(none ok)' if r['rag_n_chunks'] == 0 else 'LEAK':<7} {'-':<9} {'-':<8}"
+        extra = ""
+        if llm:
+            e = llm[r["id"]]
+            ok = e.get("relevant") if r["kind"] == "answerable" else e.get("correct_no_answer")
+            extra = "  " + ("ok" if ok else "MISS")
+        print(f"{r['id']:<4} {r['category']:<11} {q:<46} {cells}{extra}")
 
-        rows.append({"question": q, "expected": expected, "rag_hit": rag_hit, "bm25_hit": bm_hit})
+    ans = [r for r in rows if r["kind"] == "answerable"]
+    noans = [r for r in rows if r["kind"] == "no_answer"]
+    n = len(ans)
+    metrics = {
+        "rag_source_hit": sum(r["rag_src"] for r in ans),
+        "rag_evidence_hit": sum(r["rag_ev"] for r in ans),
+        "bm25_source_hit": sum(r["bm25_src"] for r in ans),
+        "bm25_evidence_hit": sum(r["bm25_ev"] for r in ans),
+        "avg_sources_shown": round(sum(len(r["rag_sources"]) for r in ans) / n, 2) if n else 0,
+        "only_expected_source": sum(r["rag_sources"] == [r["expected_source"]] for r in ans),
+        "n_answerable": n,
+        "no_answer_retrieval_clean": sum(r["rag_n_chunks"] == 0 for r in noans),
+        "n_no_answer": len(noans),
+    }
+    if llm:
+        metrics["answer_relevant"] = sum(bool(llm[r["id"]]["relevant"]) for r in ans)
+        metrics["no_answer_correct_e2e"] = sum(bool(llm[r["id"]]["correct_no_answer"]) for r in noans)
 
-    relevancy = run_answer_relevancy(goldset)
+    print("\n" + "=" * 60)
+    print(f"ANSWERABLE (n={n}), top-{k}")
+    print(f"  RAG  source-hit   {pct(metrics['rag_source_hit'], n)}")
+    print(f"  RAG  evidence-hit {pct(metrics['rag_evidence_hit'], n)}   <- honest retrieval metric")
+    print(f"  BM25 source-hit   {pct(metrics['bm25_source_hit'], n)}")
+    print(f"  BM25 evidence-hit {pct(metrics['bm25_evidence_hit'], n)}")
+    print(f"  Sources listed per answer {metrics['avg_sources_shown']:.2f} avg; "
+          f"only the expected file: {pct(metrics['only_expected_source'], n)}")
+    if llm:
+        print(f"  Answer relevancy  {pct(metrics['answer_relevant'], n)}   (keyword proxy)")
+    print(f"NO-ANSWER (n={len(noans)})")
+    print(f"  Retrieval returned nothing   {pct(metrics['no_answer_retrieval_clean'], len(noans))}")
+    if llm:
+        print(f"  Correct end-to-end (no answer, no sources)  {pct(metrics['no_answer_correct_e2e'], len(noans))}")
 
-    total = len(goldset)
-    print(f"{'Question':<60} {'RAG':<6} {'BM25':<6}")
-    print("-" * 74)
-    for i, row in enumerate(rows):
-        q_short = (row["question"][:57] + "...") if len(row["question"]) > 57 else row["question"]
-        rel = ""
-        if relevancy is not None:
-            rel = "  relevancy=" + ("hit" if relevancy[i] else "miss")
-        print(f"{q_short:<60} {'hit' if row['rag_hit'] else 'miss':<6} {'hit' if row['bm25_hit'] else 'miss':<6}{rel}")
+    by_cat = defaultdict(lambda: [0, 0, 0])
+    for r in ans:
+        by_cat[r["category"]][0] += 1
+        by_cat[r["category"]][1] += r["rag_ev"]
+        by_cat[r["category"]][2] += r["bm25_ev"]
+    print("\nEvidence-hit by category (RAG / BM25):")
+    for cat, (tot, rag, bm) in sorted(by_cat.items()):
+        print(f"  {cat:<12} n={tot:<3} RAG {rag}/{tot}   BM25 {bm}/{tot}")
 
-    print("-" * 74)
-    print(f"RAG hit-rate@{k}:  {rag_hits}/{total} ({100 * rag_hits / total:.0f}%)")
-    print(f"BM25 hit-rate@{k}: {bm25_hits}/{total} ({100 * bm25_hits / total:.0f}%)")
-    if relevancy is not None:
-        rel_hits = sum(1 for r in relevancy if r)
-        print(f"Answer relevancy:  {rel_hits}/{total} ({100 * rel_hits / total:.0f}%)")
+    if args.tag:
+        os.makedirs(RESULTS_DIR, exist_ok=True)
+        out = {"tag": args.tag, "k": k, "retrieval": mode, "embedding": config.EMBEDDING_BACKEND,
+               "min_relevance_score": config.MIN_RELEVANCE_SCORE, "metrics": metrics,
+               "per_question": rows, "llm": llm}
+        path = os.path.join(RESULTS_DIR, f"{args.tag}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(out, f, indent=2, ensure_ascii=False)
+        print(f"\nsaved {path}")
+    return 0
 
 
 if __name__ == "__main__":

@@ -63,7 +63,31 @@ MAX_HISTORY_MESSAGES = 20
 # ── Chunking / retrieval ─────────────────────────────────────────
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-RETRIEVER_K = 3
+RETRIEVER_K = 5
+
+# "vector": semantic search only.
+# "hybrid": semantic search + BM25 keyword search, merged. The two find different
+#           things — vectors handle paraphrase, BM25 handles exact terms, numbers
+#           and names that embeddings blur. Measured against vector-only on
+#           eval/goldset*.json; see README "Retrieval".
+RETRIEVAL_MODE = "hybrid"
+HYBRID_FUSION = "interleave"  # or "rrf" (reciprocal rank fusion)
+HYBRID_POOL = 20   # candidates taken from EACH retriever before merging
+RRF_K = 60         # RRF damping constant (only used when HYBRID_FUSION = "rrf")
+# BM25's top-N results are kept even when their vector score is under
+# MIN_RELEVANCE_SCORE; a chunk that only vector search found must still clear it.
+# (N=1 lost recall; N=2..5 kept it, and 2 left the fewest off-topic sources.)
+HYBRID_BM25_TRUSTED = 2
+# Hybrid gate, second way through: a query the embedding model finds unimpressive
+# (e.g. "When is Deepavali in 2026?" scores 0.08) is still in-domain if the
+# best-matching chunk contains most of its content words. Off-topic text doesn't
+# — and one-word queries never qualify, as a single common word matches anything.
+BM25_GATE_MIN_COVERAGE = 0.8
+BM25_GATE_MIN_TERMS = 2
+BM25_STOPWORDS = frozenset(
+    "the a an is are was were be do does did what when where which who whom how to of in on at "
+    "for and or i my me can am it there by with from this that as if so than then also any".split()
+)
 
 # ── When are "View Sources" shown? Two gates, both must let a message through ──
 # Layer 1 — intent: obvious social messages (greeting / thanks / goodbye / "who

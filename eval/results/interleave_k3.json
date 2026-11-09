@@ -1,0 +1,468 @@
+{
+  "tag": "interleave_k3",
+  "k": 3,
+  "retrieval": "hybrid/interleave",
+  "embedding": "local",
+  "min_relevance_score": 0.15,
+  "metrics": {
+    "rag_source_hit": 24,
+    "rag_evidence_hit": 19,
+    "bm25_source_hit": 21,
+    "bm25_evidence_hit": 16,
+    "avg_sources_shown": 1.72,
+    "only_expected_source": 9,
+    "n_answerable": 25,
+    "no_answer_retrieval_clean": 2,
+    "n_no_answer": 5
+  },
+  "per_question": [
+    {
+      "id": "q01",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "How many credit hours to graduate?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q02",
+      "kind": "answerable",
+      "category": "facility",
+      "question": "What time does the library open?",
+      "expected_source": "MMU Melaka Facilities open hour.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "Campus Directory",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q03",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "How many times am I allowed to retake a course I failed?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q04",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "Until which week can I withdraw from a subject in a long trimester?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q05",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "What is the minimum passing mark for a subject?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q06",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "When is the convocation ceremony usually held?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q07",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "If I pass all my courses but my CGPA is only 1.90, can I still graduate?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2026 Scholarship.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q08",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What is the maximum number of credit hours a non-engineering student may register in a 14-week trimester?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q09",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What CGPA do I need to get First Class Honours?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf",
+        "2026 Scholarship.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q10",
+      "kind": "answerable",
+      "category": "table",
+      "question": "How much is the graduation fee for a PhD degree?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q11",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What are the requirements to be on the Dean's List?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q12",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "Can I hold two MMU scholarships at the same time?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2026 Scholarship.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q13",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "What CGPA must a President's Scholarship holder maintain?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Scholarship.pdf",
+        "Campus Directory"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q14",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "How do I contact YUM Financial Assistance?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q15",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What fee discount do MMU staff with 10 years or more of service get for their children's studies?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Scholarship.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q16",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What are the Examinations and Records Unit opening hours on Friday?",
+      "expected_source": "MMU Melaka Facilities open hour.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q17",
+      "kind": "answerable",
+      "category": "calendar",
+      "question": "When is Labour Day in 2026?",
+      "expected_source": "2026 Academic Calendar.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Academic Calendar.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q18",
+      "kind": "answerable",
+      "category": "calendar",
+      "question": "When does the July/August 2026 trimester begin?",
+      "expected_source": "2026 Academic Calendar.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Academic Calendar.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "q19",
+      "kind": "answerable",
+      "category": "table",
+      "question": "Where is the Welcoming Day held at the Melaka campus?",
+      "expected_source": "2926 March Student Guide.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q20",
+      "kind": "answerable",
+      "category": "people",
+      "question": "Which courses does Alvin Lim teach?",
+      "expected_source": "Lecturer Cv Info.pdf",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "Lecturer Cv Info.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q21",
+      "kind": "answerable",
+      "category": "people",
+      "question": "Who is the President of MMU?",
+      "expected_source": "2025 MMU PostGraduate June.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "q22",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What is the registration fee for local postgraduate students?",
+      "expected_source": "2025 MMU PostGraduate June.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q23",
+      "kind": "answerable",
+      "category": "location",
+      "question": "Where is the finance office located?",
+      "expected_source": "Campus Directory",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "Campus Directory"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q24",
+      "kind": "answerable",
+      "category": "location",
+      "question": "Where can I go to pay my fees?",
+      "expected_source": "Campus Directory",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": false,
+      "rag_ev": false,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "q25",
+      "kind": "answerable",
+      "category": "location",
+      "question": "Where is SSC?",
+      "expected_source": "Campus Directory",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2926 March Student Guide.pdf",
+        "Campus Directory"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "n01",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What is the total number of credit hours required for the Bachelor of Software Engineering programme?",
+      "expected_source": null,
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf"
+      ]
+    },
+    {
+      "id": "n02",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What is the bus timetable from the Melaka campus to Melaka Sentral?",
+      "expected_source": null,
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ]
+    },
+    {
+      "id": "n03",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Where can I park my car on campus and how much is a parking sticker?",
+      "expected_source": null,
+      "rag_n_chunks": 0,
+      "rag_sources": []
+    },
+    {
+      "id": "n04",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Does MMU offer a Bachelor of Medicine (MBBS) programme?",
+      "expected_source": null,
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2026 Scholarship.pdf"
+      ]
+    },
+    {
+      "id": "n05",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Is there a laundry service in the hostel and how much does it cost?",
+      "expected_source": null,
+      "rag_n_chunks": 0,
+      "rag_sources": []
+    }
+  ],
+  "llm": null
+}

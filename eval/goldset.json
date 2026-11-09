@@ -1,47 +1,211 @@
 [
   {
-    "question": "What time does the Siti Hasmah Digital Library open on weekdays during trimester?",
-    "expected_source": "MMU Melaka Facilities open hour.pdf",
-    "expected_keywords": ["9:00 am", "10:00 pm"]
+    "id": "q01", "kind": "answerable", "category": "policy",
+    "question": "How many credit hours to graduate?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["To graduate, a student must"],
+    "expected_keywords": ["2.00"],
+    "note": "Original failure. The handbook gives the RULE (programme-prescribed credits + CGPA 2.00, section 12.1) but no total number; the totals are programme-specific and not in the data."
   },
   {
-    "question": "What are the Financial Department's operating hours?",
+    "id": "q02", "kind": "answerable", "category": "facility",
+    "question": "What time does the library open?",
     "expected_source": "MMU Melaka Facilities open hour.pdf",
-    "expected_keywords": ["9:00 am", "5:00 pm"]
+    "evidence": ["Trimester: Mon–Fri (9:00 AM – 10:00 PM)"],
+    "expected_keywords": ["9:00 am", "9 am", "9am"],
+    "note": "Original failure. Clean text; the right chunk ranks 13th by vectors but 2nd by BM25."
   },
   {
-    "question": "What are the Admission Office's operating hours?",
-    "expected_source": "MMU Melaka Facilities open hour.pdf",
-    "expected_keywords": ["8:30 am", "5:30 pm"]
+    "id": "q03", "kind": "answerable", "category": "policy",
+    "question": "How many times am I allowed to retake a course I failed?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["repeat a course up to a maximum of two (2) times"],
+    "expected_keywords": ["two", "twice", "2 times"]
   },
   {
-    "question": "When is Labour Day according to the 2026 academic calendar?",
+    "id": "q04", "kind": "answerable", "category": "policy",
+    "question": "Until which week can I withdraw from a subject in a long trimester?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["Course withdrawal is permissible up to week seven (7)"],
+    "expected_keywords": ["seven", "week 7", "7th"]
+  },
+  {
+    "id": "q05", "kind": "answerable", "category": "policy",
+    "question": "What is the minimum passing mark for a subject?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["the passing marks 40% (grade D)"],
+    "expected_keywords": ["40"]
+  },
+  {
+    "id": "q06", "kind": "answerable", "category": "policy",
+    "question": "When is the convocation ceremony usually held?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["normally held in November/December"],
+    "expected_keywords": ["november", "december"]
+  },
+  {
+    "id": "q07", "kind": "answerable", "category": "policy",
+    "question": "If I pass all my courses but my CGPA is only 1.90, can I still graduate?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["Students will not graduate if they pass all courses"],
+    "expected_keywords": ["2.00", "not graduate", "cannot graduate"]
+  },
+  {
+    "id": "q08", "kind": "answerable", "category": "table",
+    "question": "What is the maximum number of credit hours a non-engineering student may register in a 14-week trimester?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["12 CH 18 CH 20 CH"],
+    "expected_keywords": ["20"],
+    "note": "Credit-load table; extraction linearises the columns."
+  },
+  {
+    "id": "q09", "kind": "answerable", "category": "table",
+    "question": "What CGPA do I need to get First Class Honours?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["First 3.67 – 4.00"],
+    "expected_keywords": ["3.67"]
+  },
+  {
+    "id": "q10", "kind": "answerable", "category": "table",
+    "question": "How much is the graduation fee for a PhD degree?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["PhD Degree RM 450.00"],
+    "expected_keywords": ["450"]
+  },
+  {
+    "id": "q11", "kind": "answerable", "category": "table",
+    "question": "What are the requirements to be on the Dean's List?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["Dean’s List is a recognition to students who are excellent"],
+    "expected_keywords": ["3.67", "3.50"],
+    "note": "The requirements are in a table that the PDF extractor scrambles ('12 6Bachelor Diploma 3.50')."
+  },
+  {
+    "id": "q12", "kind": "answerable", "category": "scholarship",
+    "question": "Can I hold two MMU scholarships at the same time?",
+    "expected_source": "2026 Scholarship.pdf",
+    "evidence": ["only entitled to ONE MMU scholarship at any one time"],
+    "expected_keywords": ["one mmu scholarship", "only one", "not allowed", "cannot"]
+  },
+  {
+    "id": "q13", "kind": "answerable", "category": "scholarship",
+    "question": "What CGPA must a President's Scholarship holder maintain?",
+    "expected_source": "2026 Scholarship.pdf",
+    "evidence": ["MMU PRESIDENT’S Scholarship"],
+    "expected_keywords": ["3.50"]
+  },
+  {
+    "id": "q14", "kind": "answerable", "category": "scholarship",
+    "question": "How do I contact YUM Financial Assistance?",
+    "expected_source": "2026 Scholarship.pdf",
+    "evidence": ["yum@mmu.edu.my"],
+    "expected_keywords": ["yum@mmu.edu.my", "03-8312"]
+  },
+  {
+    "id": "q15", "kind": "answerable", "category": "table",
+    "question": "What fee discount do MMU staff with 10 years or more of service get for their children's studies?",
+    "expected_source": "2026 Scholarship.pdf",
+    "evidence": ["10 years and above"],
+    "expected_keywords": ["50%"]
+  },
+  {
+    "id": "q16", "kind": "answerable", "category": "table",
+    "question": "What are the Examinations and Records Unit opening hours on Friday?",
+    "expected_source": "MMU Melaka Facilities open hour.pdf",
+    "evidence": ["Friday: 8:30 AM – 12:45 PM"],
+    "expected_keywords": ["8:30", "12:45"]
+  },
+  {
+    "id": "q17", "kind": "answerable", "category": "calendar",
+    "question": "When is Labour Day in 2026?",
     "expected_source": "2026 Academic Calendar.pdf",
-    "expected_keywords": ["1 may", "labour day"]
+    "evidence": ["1 May (Fri) Labour Day"],
+    "expected_keywords": ["1 may", "may 1", "1st may"]
   },
   {
-    "question": "When does the Christmas holiday fall in the 2026 academic calendar?",
+    "id": "q18", "kind": "answerable", "category": "calendar",
+    "question": "When does the July/August 2026 trimester begin?",
     "expected_source": "2026 Academic Calendar.pdf",
-    "expected_keywords": ["25 dec", "christmas"]
+    "evidence": ["10 Aug - 16 Aug Week 1"],
+    "expected_keywords": ["10 aug", "august 10"]
   },
   {
+    "id": "q19", "kind": "answerable", "category": "table",
+    "question": "Where is the Welcoming Day held at the Melaka campus?",
+    "expected_source": "2926 March Student Guide.pdf",
+    "evidence": ["MELAKA Exam Hall"],
+    "expected_keywords": ["exam hall"],
+    "note": "Venue table in the new-student guide; extraction runs the Cyberjaya and Melaka rows together."
+  },
+  {
+    "id": "q20", "kind": "answerable", "category": "people",
+    "question": "Which courses does Alvin Lim teach?",
+    "expected_source": "Lecturer Cv Info.pdf",
+    "evidence": ["Data Structure and Algorithms"],
+    "expected_keywords": ["data structure", "database systems"]
+  },
+  {
+    "id": "q21", "kind": "answerable", "category": "people",
+    "question": "Who is the President of MMU?",
+    "expected_source": "2025 MMU PostGraduate June.pdf",
+    "evidence": ["Mazliham Mohd Su’ud"],
+    "expected_keywords": ["mazliham"]
+  },
+  {
+    "id": "q22", "kind": "answerable", "category": "table",
+    "question": "What is the registration fee for local postgraduate students?",
+    "expected_source": "2025 MMU PostGraduate June.pdf",
+    "evidence": ["Registration Fee 570 2,000"],
+    "expected_keywords": ["570"],
+    "note": "Fee table; extraction separates the numbers from their programme names."
+  },
+  {
+    "id": "q23", "kind": "answerable", "category": "location",
     "question": "Where is the finance office located?",
     "expected_source": "Campus Directory",
+    "evidence": ["Campus location: Finance Office"],
     "expected_keywords": ["administration building", "level 1"]
   },
   {
-    "question": "Where is the Student Services Centre?",
+    "id": "q24", "kind": "answerable", "category": "location",
+    "question": "Where can I go to pay my fees?",
     "expected_source": "Campus Directory",
+    "evidence": ["Handles fee payments"],
+    "expected_keywords": ["finance office"],
+    "note": "No alias match is possible here, so this exercises semantic location retrieval only."
+  },
+  {
+    "id": "q25", "kind": "answerable", "category": "location",
+    "question": "Where is SSC?",
+    "expected_source": "Campus Directory",
+    "evidence": ["Campus location: Student Services Centre"],
     "expected_keywords": ["administration building"]
   },
   {
-    "question": "Where is SSC?",
-    "expected_source": "Campus Directory",
-    "expected_keywords": ["student services centre"]
+    "id": "n01", "kind": "no_answer", "category": "out_of_data",
+    "question": "What is the total number of credit hours required for the Bachelor of Software Engineering programme?",
+    "absent_terms": ["bachelor of software engineering"],
+    "note": "Programme structures are not in the data."
   },
   {
-    "question": "Where is the library?",
-    "expected_source": "Campus Directory",
-    "expected_keywords": ["library building"]
+    "id": "n02", "kind": "no_answer", "category": "out_of_data",
+    "question": "What is the bus timetable from the Melaka campus to Melaka Sentral?",
+    "absent_terms": ["\\bbus(es)?\\b", "melaka sentral"]
+  },
+  {
+    "id": "n03", "kind": "no_answer", "category": "out_of_data",
+    "question": "Where can I park my car on campus and how much is a parking sticker?",
+    "absent_terms": ["parking", "park my car"]
+  },
+  {
+    "id": "n04", "kind": "no_answer", "category": "out_of_data",
+    "question": "Does MMU offer a Bachelor of Medicine (MBBS) programme?",
+    "absent_terms": ["mbbs", "bachelor of medicine"]
+  },
+  {
+    "id": "n05", "kind": "no_answer", "category": "out_of_data",
+    "question": "Is there a laundry service in the hostel and how much does it cost?",
+    "absent_terms": ["laundry"],
+    "note": "Hostels ARE in the data (registration, deposit) but laundry is not — a topic-adjacent trap."
   }
 ]

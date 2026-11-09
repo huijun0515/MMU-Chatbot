@@ -1,0 +1,558 @@
+{
+  "tag": "baseline",
+  "k": 3,
+  "retrieval": "vector",
+  "embedding": "local",
+  "min_relevance_score": 0.15,
+  "metrics": {
+    "rag_source_hit": 23,
+    "rag_evidence_hit": 16,
+    "bm25_source_hit": 21,
+    "bm25_evidence_hit": 16,
+    "n_answerable": 25,
+    "no_answer_retrieval_clean": 2,
+    "n_no_answer": 5,
+    "answer_relevant": 17,
+    "no_answer_correct_e2e": 5
+  },
+  "per_question": [
+    {
+      "id": "q01",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "How many credit hours to graduate?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q02",
+      "kind": "answerable",
+      "category": "facility",
+      "question": "What time does the library open?",
+      "rag_n_chunks": 2,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q03",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "How many times am I allowed to retake a course I failed?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q04",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "Until which week can I withdraw from a subject in a long trimester?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q05",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "What is the minimum passing mark for a subject?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q06",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "When is the convocation ceremony usually held?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q07",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "If I pass all my courses but my CGPA is only 1.90, can I still graduate?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q08",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What is the maximum number of credit hours a non-engineering student may register in a 14-week trimester?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q09",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What CGPA do I need to get First Class Honours?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q10",
+      "kind": "answerable",
+      "category": "table",
+      "question": "How much is the graduation fee for a PhD degree?",
+      "rag_n_chunks": 3,
+      "rag_src": false,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q11",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What are the requirements to be on the Dean's List?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q12",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "Can I hold two MMU scholarships at the same time?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q13",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "What CGPA must a President's Scholarship holder maintain?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q14",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "How do I contact YUM Financial Assistance?",
+      "rag_n_chunks": 2,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q15",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What fee discount do MMU staff with 10 years or more of service get for their children's studies?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q16",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What are the Examinations and Records Unit opening hours on Friday?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q17",
+      "kind": "answerable",
+      "category": "calendar",
+      "question": "When is Labour Day in 2026?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q18",
+      "kind": "answerable",
+      "category": "calendar",
+      "question": "When does the July/August 2026 trimester begin?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "q19",
+      "kind": "answerable",
+      "category": "table",
+      "question": "Where is the Welcoming Day held at the Melaka campus?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q20",
+      "kind": "answerable",
+      "category": "people",
+      "question": "Which courses does Alvin Lim teach?",
+      "rag_n_chunks": 1,
+      "rag_src": true,
+      "rag_ev": false,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q21",
+      "kind": "answerable",
+      "category": "people",
+      "question": "Who is the President of MMU?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "q22",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What is the registration fee for local postgraduate students?",
+      "rag_n_chunks": 3,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "q23",
+      "kind": "answerable",
+      "category": "location",
+      "question": "Where is the finance office located?",
+      "rag_n_chunks": 1,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "q24",
+      "kind": "answerable",
+      "category": "location",
+      "question": "Where can I go to pay my fees?",
+      "rag_n_chunks": 2,
+      "rag_src": false,
+      "rag_ev": false,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "q25",
+      "kind": "answerable",
+      "category": "location",
+      "question": "Where is SSC?",
+      "rag_n_chunks": 2,
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": false,
+      "bm25_ev": false
+    },
+    {
+      "id": "n01",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What is the total number of credit hours required for the Bachelor of Software Engineering programme?",
+      "rag_n_chunks": 3
+    },
+    {
+      "id": "n02",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What is the bus timetable from the Melaka campus to Melaka Sentral?",
+      "rag_n_chunks": 3
+    },
+    {
+      "id": "n03",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Where can I park my car on campus and how much is a parking sticker?",
+      "rag_n_chunks": 0
+    },
+    {
+      "id": "n04",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Does MMU offer a Bachelor of Medicine (MBBS) programme?",
+      "rag_n_chunks": 3
+    },
+    {
+      "id": "n05",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Is there a laundry service in the hostel and how much does it cost?",
+      "rag_n_chunks": 0
+    }
+  ],
+  "llm": {
+    "q01": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q02": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q03": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "You are allowed to repeat a course up to a maximum of two (2) times. If you fail a course more than two times and your status is dismissed, your appeal for reinstatement may not be considered (Source: 2025 Academic Handbook.pdf, page 23).",
+      "relevant": true
+    },
+    "q04": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "You can withdraw from a subject in a long trimester up to week seven (7) [Source: 2025 Academic Handbook.pdf, page 24].",
+      "relevant": true
+    },
+    "q05": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "To pass a subject, students must achieve an overall mark of at least 40%.\n\nHowever, it's important to note the following conditions:\n*   Students must pass both their formative and summative assessments.\n*   If a student fails their summative assessment, they will fail the subject and receive a grade of F#, even if their accumulated marks (overall mark) are 40% or above. (Source: 2025 Academic Handbook.pdf, page 59)\n*   If a student fails their formative assessment, they will fail the subject and receive a grade of F#, even if they pass their summative assessment and their accumulated marks (overall mark) are 40% or above. (Source: 2025 Academic Handbook.pdf, page 57)",
+      "relevant": true
+    },
+    "q06": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "answer": "The convocation ceremony to celebrate graduates is normally held in November/December every year.",
+      "relevant": true
+    },
+    "q07": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf",
+        "2026 Scholarship.pdf"
+      ],
+      "answer": "No, you cannot graduate if your CGPA is 1.90, even if you pass all your courses. The graduation requirement is a CGPA and GPA of at least 2.00. You would be required to repeat course(s) to increase your CGPA to at least 2.00 (Source: 2025 Academic Handbook.pdf, page 45).",
+      "relevant": true
+    },
+    "q08": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "For a 14-week trimester, a non-engineering student may register a maximum of 20 Credit Hours (CH).",
+      "relevant": true
+    },
+    "q09": {
+      "grounded": true,
+      "sources": [
+        "2025 MMU PostGraduate June.pdf",
+        "2026 Scholarship.pdf",
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "To achieve First Class Honours in a Bachelor's Degree Programme, you need a CGPA between 3.67 and 4.00.",
+      "relevant": true
+    },
+    "q10": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q11": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "To be on the Dean's List, students must fulfill the following requirements:\n\n*   **Foundation:**\n    *   Minimum GPA: 3.67\n    *   Minimum Total Credit Hours for graded subjects:\n        *   Long Trimester: 12\n        *   Short Trimester: 6\n*   **Diploma / Bachelor:**\n    *   Minimum GPA: 3.50\n    *   Minimum Total Credit Hours for graded subjects:\n        *   Long Trimester: 12\n        *   Short Trimester: 6\n\n(Source: 2025 Academic Handbook.pdf, page 54)",
+      "relevant": true
+    },
+    "q12": {
+      "grounded": true,
+      "sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "answer": "No, you are only entitled to ONE MMU scholarship at any one time. Combining scholarships/financial aids from MMU is NOT allowed. (Source: 2026 Scholarship.pdf, page 7)",
+      "relevant": true
+    },
+    "q13": {
+      "grounded": true,
+      "sources": [
+        "Campus Directory",
+        "2026 Scholarship.pdf"
+      ],
+      "answer": "For the MMU President's Scholarship, recipients must maintain a CGPA of 3.50 throughout their duration of study.",
+      "relevant": true
+    },
+    "q14": {
+      "grounded": true,
+      "sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "answer": "For enquiries regarding YUM Financial Assistance, you can contact them via:\n*   **Phone:** 03-8312 5040/5043/5103\n*   **Email:** yum@mmu.edu.my",
+      "relevant": true
+    },
+    "q15": {
+      "grounded": true,
+      "sources": [
+        "2026 Scholarship.pdf"
+      ],
+      "answer": "MMU staff with 10 years or more of service are eligible for a 50% discount on programme fees for their children's studies at MMU. (Source: 2026 Scholarship.pdf, page 4)",
+      "relevant": true
+    },
+    "q16": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q17": {
+      "grounded": true,
+      "sources": [
+        "2926 March Student Guide.pdf",
+        "2026 Academic Calendar.pdf"
+      ],
+      "answer": "Labour Day in 2026 is on **1 May (Fri)**.",
+      "relevant": true
+    },
+    "q18": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q19": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. The \"2926 March Student Guide.pdf\" mentions Welcoming Day as part of the WIN program and advises students to visit the WIN website (https://winprogramme.mmu.edu.my/) for the schedule and latest updates, which would likely include location details. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q20": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "relevant": false
+    },
+    "q21": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "answer": "The President/CEO of Multimedia University (MMU) is Prof. Dato’ Dr. Mazliham Mohd Su’ud.",
+      "relevant": true
+    },
+    "q22": {
+      "grounded": true,
+      "sources": [
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "answer": "The registration fee for local postgraduate students is RM 570.",
+      "relevant": true
+    },
+    "q23": {
+      "grounded": true,
+      "sources": [
+        "Campus Directory"
+      ],
+      "answer": "The Finance Office (also known as Bursary or Fees Office) is located in the Administration Building, on Level 1.\n\nTo get there:\n*   Enter the Administration Building main door.\n*   Take the stairs or lift to Level 1.\n*   Turn right; the Finance Office is the second door.\n\nIt is located beside the Student Services Centre.",
+      "relevant": true
+    },
+    "q24": {
+      "grounded": true,
+      "sources": [
+        "2926 March Student Guide.pdf"
+      ],
+      "answer": "You can pay your fees via:\n*   **MMU E-Payment**: https://bit.ly/3i7hRml\n*   **Flywire** (for payments from overseas): mmulanding.flywire.com",
+      "relevant": false
+    },
+    "q25": {
+      "grounded": true,
+      "sources": [
+        "Campus Directory",
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "The Student Service Centre (SSC) is located on the Ground Level of the Administration Building.\n\nYou can find it immediately to the left of the main entrance. It is also near the covered walkway and below the Finance Office.",
+      "relevant": true
+    },
+    "n01": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    },
+    "n02": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    },
+    "n03": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    },
+    "n04": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    },
+    "n05": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    }
+  }
+}

@@ -133,6 +133,26 @@ Only when an answer is genuinely grounded in retrieved context. Two gates in
 
 Every logged query records its `intent` (`chitchat` / `knowledge`).
 
+## Retrieval and evaluation
+
+Retrieval is hybrid (`core/retrieval.py`): vector search + BM25, merged by
+round-robin, with a relevance gate. `python evaluate.py --validate` proves the
+gold sets against the index; `eval/goldset.json` (25 answerable + 5 no-answer)
+was used for tuning and `eval/goldset_heldout.json` (11 + 3) was not.
+Metric: *evidence-hit* = a retrieved chunk of the expected file contains the
+evidence text (file-level "source-hit" overstates quality). Results are in
+`eval/results/`; compare configs with `--mode`, `--fusion`, `--k`.
+
+| config (dev n=25 / held-out n=11) | evidence-hit | sources/answer |
+|---|---|---|
+| vector k=3 (old default) | 64% / 91% | 1.60 |
+| vector k=5 | 76% / 91% | 1.88 |
+| hybrid RRF k=3 | 84% / 100% | 1.68 |
+| **hybrid interleave k=5 (default)** | **88% / 100%** | 2.04 |
+
+Known misses: q01 (the data has the graduation *rule* but no credit total),
+q18 ("July" vs "JUL" in the calendar), q24 (paraphrased location question).
+
 ## Notes
 
 - `chroma_db/` and `data/query_log.jsonl` are generated, not versioned — see

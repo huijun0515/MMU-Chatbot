@@ -1,0 +1,227 @@
+{
+  "tag": "interleave_k3_heldout",
+  "k": 3,
+  "retrieval": "hybrid/interleave",
+  "embedding": "local",
+  "min_relevance_score": 0.15,
+  "metrics": {
+    "rag_source_hit": 11,
+    "rag_evidence_hit": 11,
+    "bm25_source_hit": 11,
+    "bm25_evidence_hit": 10,
+    "avg_sources_shown": 1.45,
+    "only_expected_source": 7,
+    "n_answerable": 11,
+    "no_answer_retrieval_clean": 0,
+    "n_no_answer": 3
+  },
+  "per_question": [
+    {
+      "id": "h01",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "What is the maximum credit that can be transferred from a Certificate to a Diploma?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h02",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "What grade is recorded if I withdraw from a course?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h03",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "If I repeat a course, which of my grades counts towards my CGPA?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h04",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What is the minimum academic load for a student following the programme structure in a long trimester?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h05",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "When is the closing date to apply for the JAWHAR scholarship?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h06",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "What discount does MMU give to alumni?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2026 Scholarship.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h07",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What time is the main registration on Welcoming Day?",
+      "expected_source": "2926 March Student Guide.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h08",
+      "kind": "answerable",
+      "category": "people",
+      "question": "How many international students study at MMU?",
+      "expected_source": "2025 MMU PostGraduate June.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 MMU PostGraduate June.pdf",
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "h09",
+      "kind": "answerable",
+      "category": "facility",
+      "question": "Where is the CIMB ATM located?",
+      "expected_source": "MMU Melaka Facilities open hour.pdf",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h10",
+      "kind": "answerable",
+      "category": "calendar",
+      "question": "When is Deepavali in 2026?",
+      "expected_source": "2026 Academic Calendar.pdf",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "2026 Academic Calendar.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h11",
+      "kind": "answerable",
+      "category": "people",
+      "question": "What are Alvin Lim's research interests?",
+      "expected_source": "Lecturer Cv Info.pdf",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "Lecturer Cv Info.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "hn1",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What are the opening hours of the campus bookstore?",
+      "expected_source": null,
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ]
+    },
+    {
+      "id": "hn2",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Is there a shuttle service between the Melaka and Cyberjaya campuses?",
+      "expected_source": null,
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "2025 MMU PostGraduate June.pdf",
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ]
+    },
+    {
+      "id": "hn3",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What is the dress code for lab sessions?",
+      "expected_source": null,
+      "rag_n_chunks": 1,
+      "rag_sources": [
+        "Campus Directory"
+      ]
+    }
+  ],
+  "llm": null
+}

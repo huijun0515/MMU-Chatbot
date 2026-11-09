@@ -1,0 +1,94 @@
+[
+  {
+    "id": "h01", "kind": "answerable", "category": "policy",
+    "question": "What is the maximum credit that can be transferred from a Certificate to a Diploma?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["Certificate (MQF Level 3) to Diploma (MQF Level 4)"],
+    "expected_keywords": ["30%"]
+  },
+  {
+    "id": "h02", "kind": "answerable", "category": "policy",
+    "question": "What grade is recorded if I withdraw from a course?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["automatic grade of “W”"],
+    "expected_keywords": ["grade w", "\"w\"", "“w”"]
+  },
+  {
+    "id": "h03", "kind": "answerable", "category": "policy",
+    "question": "If I repeat a course, which of my grades counts towards my CGPA?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["only the BEST grade shall be taken into account"],
+    "expected_keywords": ["best grade", "highest"]
+  },
+  {
+    "id": "h04", "kind": "answerable", "category": "table",
+    "question": "What is the minimum academic load for a student following the programme structure in a long trimester?",
+    "expected_source": "2025 Academic Handbook.pdf",
+    "evidence": ["14 lecture-week trimester: 12 CH"],
+    "expected_keywords": ["12"]
+  },
+  {
+    "id": "h05", "kind": "answerable", "category": "scholarship",
+    "question": "When is the closing date to apply for the JAWHAR scholarship?",
+    "expected_source": "2026 Scholarship.pdf",
+    "evidence": ["One month before the registration date of each intake"],
+    "expected_keywords": ["one month"]
+  },
+  {
+    "id": "h06", "kind": "answerable", "category": "scholarship",
+    "question": "What discount does MMU give to alumni?",
+    "expected_source": "2026 Scholarship.pdf",
+    "evidence": ["MMU ALUMNI Discount"],
+    "expected_keywords": ["10%"]
+  },
+  {
+    "id": "h07", "kind": "answerable", "category": "table",
+    "question": "What time is the main registration on Welcoming Day?",
+    "expected_source": "2926 March Student Guide.pdf",
+    "evidence": ["08.45 AM – 11.00 AM (Main Registration)"],
+    "expected_keywords": ["8.45", "08.45", "11.00"]
+  },
+  {
+    "id": "h08", "kind": "answerable", "category": "people",
+    "question": "How many international students study at MMU?",
+    "expected_source": "2025 MMU PostGraduate June.pdf",
+    "evidence": ["approximately 1,600 international students"],
+    "expected_keywords": ["1,600", "1600"]
+  },
+  {
+    "id": "h09", "kind": "answerable", "category": "facility",
+    "question": "Where is the CIMB ATM located?",
+    "expected_source": "MMU Melaka Facilities open hour.pdf",
+    "evidence": ["Location: Student Plaza Complex"],
+    "expected_keywords": ["student plaza"]
+  },
+  {
+    "id": "h10", "kind": "answerable", "category": "calendar",
+    "question": "When is Deepavali in 2026?",
+    "expected_source": "2026 Academic Calendar.pdf",
+    "evidence": ["8 Nov (Sun) Deepavali"],
+    "expected_keywords": ["8 nov", "november 8"]
+  },
+  {
+    "id": "h11", "kind": "answerable", "category": "people",
+    "question": "What are Alvin Lim's research interests?",
+    "expected_source": "Lecturer Cv Info.pdf",
+    "evidence": ["deep learning, computer vision"],
+    "expected_keywords": ["deep learning", "computer vision"]
+  },
+  {
+    "id": "hn1", "kind": "no_answer", "category": "out_of_data",
+    "question": "What are the opening hours of the campus bookstore?",
+    "absent_terms": ["bookstore|book shop"]
+  },
+  {
+    "id": "hn2", "kind": "no_answer", "category": "out_of_data",
+    "question": "Is there a shuttle service between the Melaka and Cyberjaya campuses?",
+    "absent_terms": ["shuttle"]
+  },
+  {
+    "id": "hn3", "kind": "no_answer", "category": "out_of_data",
+    "question": "What is the dress code for lab sessions?",
+    "absent_terms": ["dress code"]
+  }
+]
