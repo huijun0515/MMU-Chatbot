@@ -44,7 +44,8 @@ GUIDELINES:
 3. If the question is about a location, describe it relative to other landmarks.
 4. If you cannot find the answer, say: "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance."
 5. Campus-directory passages end with an "Information status" line. If it says UNVERIFIED, still give the room, but add that this information comes from an older list and may have changed. If it says CONFLICT, give BOTH versions that the passage mentions and tell the user to check on site. Official or no status: state it normally. Never invent floors, directions, opening hours or contacts that the passage does not contain.
-6. If the message is only a greeting, thanks or small talk, just reply naturally and briefly — do not use the fallback message from guideline 4.
+6. A "Campus Events" passage is the live event calendar and states today's date. Only events listed in it are upcoming; never call any other event upcoming, and never invent events. Give the date, time and venue, and mention the registration link when there is one. Events it labels as outside the requested range must be described that way.
+7. If the message is only a greeting, thanks or small talk, just reply naturally and briefly — do not use the fallback message from guideline 4.
 
 Context:
 {context}"""
@@ -125,7 +126,7 @@ def _is_no_answer(answer):
     return config.NO_ANSWER_MARKER.lower() in answer.lower()
 
 
-def ask(pipeline, question, chat_history, log=True):
+def ask(pipeline, question, chat_history, log=True, input_mode="text", voice_edited=None):
     """
     Answer one message and decide whether its sources may be shown.
 
@@ -161,6 +162,8 @@ def ask(pipeline, question, chat_history, log=True):
             sources=response["sources"],
             timestamp=datetime.datetime.now().isoformat(timespec="seconds"),
             intent=intent,
+            input_mode=input_mode,
+            voice_edited=voice_edited,
         )
     return response
 

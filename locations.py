@@ -332,7 +332,7 @@ def render_directory_page():
 
     c1, c2 = st.columns([2, 1])
     with c1:
-        query = st.text_input("🔎 Search", placeholder="e.g. library, finance, BR1024")
+        query = st.text_input("🔎 Search", placeholder="e.g. library, finance, MNCR1001", key="places_query")
     with c2:
         cats = ["All"] + sorted({r.get("category", "") for r in items if r.get("category")})
         cat = st.selectbox("Category", cats)

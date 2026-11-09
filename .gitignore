@@ -9,3 +9,5 @@ data/query_log.jsonl
 
 # Office lock files
 ~$*
+
+data/app.db

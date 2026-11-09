@@ -3,7 +3,7 @@ Admin panel for the MMU Campus Assistant.
 
 Two tabs (both behind one password gate):
   📚 Knowledge Base  — upload/sync/delete PDFs (no rebuild required)
-  📢 Announcements   — publish/delete campus event posters
+  📢 Events          — create/edit/pin/delete campus events
 
 Knowledge-base sync is incremental: new PDFs are embedded and appended to the
 live Chroma DB, with duplicate detection and rate-limit auto-retry.
@@ -17,7 +17,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from core import config
 from core.vector_store import get_vector_db, embed_with_retry
 from core.logging_setup import logger
-from announcements import render_admin_announcements
+from events import render_admin_events
 from locations import render_admin_locations
 
 DATA_DIR = config.DATA_DIR
@@ -193,7 +193,7 @@ def render_admin_page():
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<p style='text-align:center;'>Manage the knowledge base and campus announcements.</p>",
+        "<p style='text-align:center;'>Manage the knowledge base and campus events.</p>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
@@ -202,11 +202,11 @@ def render_admin_page():
         return
 
     tab_kb, tab_loc, tab_ann = st.tabs(
-        ["📚 Knowledge Base", "📍 Locations", "📢 Announcements"]
+        ["📚 Knowledge Base", "📍 Locations", "📢 Events"]
     )
     with tab_kb:
         _render_kb_admin()
     with tab_loc:
         render_admin_locations()
     with tab_ann:
-        render_admin_announcements()
+        render_admin_events()

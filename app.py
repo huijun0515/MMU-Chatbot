@@ -5,7 +5,7 @@ Everything else lives elsewhere on purpose:
   core/        RAG engine (config, vector store, chat chain, location lookup, query log)
   ui/          shared CSS
   views/       the chat page
-  admin.py, announcements.py, locations.py, cgpa_calculator.py, source_explorer.py
+  admin.py, events.py, locations.py, cgpa_calculator.py, source_explorer.py
                self-contained feature pages
 
 The admin console has NO button in the student-facing sidebar. It opens only
@@ -19,7 +19,7 @@ from ui.styles import SIDEBAR_CSS
 from views.assistant_view import render_assistant_page
 from cgpa_calculator import render_cgpa_calculator
 from admin import render_admin_page
-from announcements import render_announcements_page
+from events import render_events_page
 from source_explorer import render_source_explorer_page
 from locations import render_directory_page
 
@@ -43,7 +43,7 @@ if "admin" in st.query_params:
 PAGES = {
     "Assistant": render_assistant_page,
     "Calculator": render_cgpa_calculator,
-    "Announcements": render_announcements_page,
+    "Events": render_events_page,
     "Sources": render_source_explorer_page,
     "Places": render_directory_page,
     "Admin": render_admin_page,
@@ -52,7 +52,7 @@ PAGES = {
 NAV_ITEMS = [
     ("Assistant", "🤖 Assistant"),
     ("Calculator", "📊 Calculator"),
-    ("Announcements", "📢 Events"),
+    ("Events", "📢 Events"),
     ("Sources", "📚 Sources"),
     ("Places", "📍 Places"),
 ]  # "Admin" is intentionally absent — reachable only via ?admin=1

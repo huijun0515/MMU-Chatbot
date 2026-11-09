@@ -34,7 +34,9 @@ DATA_DIR = "./data"
 CHROMA_DIR = "./chroma_db"
 LOCATIONS_DIR = "./locations"
 LOCATIONS_XLSX = "./data/Location File.xlsx"
-ANNOUNCE_DIR = "./announcements"
+ANNOUNCE_DIR = os.environ.get("EVENT_POSTERS_DIR", "./announcements")   # event poster images (folder name kept from the old Announcements feature)
+LEGACY_ANNOUNCEMENTS_JSON = "./announcements/announcements.json"
+APP_DB_PATH = os.environ.get("APP_DB_PATH", "./data/app.db")
 QUERY_LOG_PATH = "./data/query_log.jsonl"
 
 # ── Embedding backend ────────────────────────────────────────────
@@ -144,3 +146,25 @@ NO_ANSWER_MARKER = "couldn't find that specific information"
 EMBED_BATCH_SIZE = 15
 EMBED_NORMAL_PAUSE = 1.5
 EMBED_COOLDOWN_SECONDS = 45
+
+# ── Events ───────────────────────────────────────────────────────
+TIMEZONE = "Asia/Kuala_Lumpur"   # all event times are Malaysia time (UTC+8)
+EVENT_CATEGORIES = ["Academic Talk", "Career", "Sports", "Clubs & Societies", "Faculty", "Other"]
+POSTER_MAX_WIDTH = 1200
+POSTER_MAX_BYTES = 8 * 1024 * 1024
+PAST_EVENTS_LIMIT = 12
+
+# ── Voice ────────────────────────────────────────────────────────
+VOICE_ENABLED = True
+VOICE_MAX_SECONDS = 30
+VOICE_MAX_BYTES = 5 * 1024 * 1024
+TRANSCRIBE_MODEL = LLM_MODEL   # Gemini accepts audio; same key, same model as answers
+# "Read aloud" uses the browser's built-in speech synthesis: free, no API quota,
+# works offline and has English / Malay / Chinese voices on most devices (quality
+# depends on the voices the OS has installed). A Gemini TTS option would cost
+# API quota on every click and needs audio streaming back, so it is not used.
+TTS_ENABLED = True
+
+# ── Chat rate limit (per browser session; typed, quick-query and voice all count) ──
+CHAT_RATE_LIMIT_MAX = 10
+CHAT_RATE_LIMIT_WINDOW_SECONDS = 60

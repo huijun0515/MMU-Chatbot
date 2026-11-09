@@ -172,6 +172,61 @@ def llm_pass(goldset, vector_db):
     return results
 
 
+# ── event questions (live calendar, fixed fixture) ─────────────────────────
+def run_events_eval(with_llm):
+    """Load the fixture calendar into a throw-away DB, freeze 'now', and check that
+    event questions get exactly the right events — and never past or draft ones."""
+    import tempfile
+
+    from core import events_db
+    from core.event_context import events_document
+
+    with open("eval/goldset_events.json", "r", encoding="utf-8") as f:
+        fx = json.load(f)
+    tmp = tempfile.mkdtemp()
+    config.APP_DB_PATH = os.path.join(tmp, "events.db")
+    config.LEGACY_ANNOUNCEMENTS_JSON = os.path.join(tmp, "none.json")
+    events_db.set_now(events_db.parse(fx["now"]))
+    events_db.init_db()
+    for e in fx["events"]:
+        events_db.create_event(**{"status": "published", "description": "", "organiser": "", **{
+            k: v for k, v in e.items() if k != "note"}})
+
+    pipeline = None
+    if with_llm:
+        from locations import list_locations
+        from core.rag_chain import build_chat_pipeline
+        pipeline = build_chat_pipeline(build_vector_db(), list_locations)
+
+    # Past and draft fixtures must not appear ANYWHERE in what the assistant sees or says.
+    never = [e["title"] for e in fx["events"] if e.get("status") == "draft" or e.get("note", "").startswith("ended")]
+    passed = 0
+    print(f"Fixture 'now' = {fx['now']}; {len(fx['events'])} fixture events\n")
+    for q in fx["questions"]:
+        text = events_document(q["question"]).page_content
+        listed = text.split("OUTSIDE the requested range")[0]
+        ok_ret = (all(t in listed for t in q["expected_titles"])
+                  and not any(t in listed for t in q["forbidden_titles"])
+                  and not any(t in text for t in never))
+        line = f"{q['id']} retrieval {'ok  ' if ok_ret else 'FAIL'} | {q['question']}"
+        ok_llm = None
+        if pipeline:
+            time.sleep(LLM_CALL_SPACING_SECONDS)
+            answer = _ask_with_retry(pipeline, q["question"])["answer"]
+            low = answer.lower()
+            ok_llm = all(k in low for k in q.get("answer_expect", [])) and not any(t.lower() in low for t in never)
+            line += f" | answer {'ok  ' if ok_llm else 'FAIL'}"
+            if not ok_llm:
+                line += f"\n    answer was: {answer[:300]!r}"
+        print(line)
+        if not ok_ret:
+            print("    passage:", text[:500].replace("\n", " / "))
+        passed += ok_ret and (ok_llm is None or ok_llm)
+    print(f"\n{passed}/{len(fx['questions'])} event questions passed")
+    events_db.set_now(None)
+    return 0 if passed == len(fx["questions"]) else 1
+
+
 # ── reporting ──────────────────────────────────────────────────────────────
 def pct(n, d):
     return f"{n}/{d} ({100 * n / d:.0f}%)" if d else "n/a"
@@ -184,6 +239,7 @@ def main():
     ap.add_argument("--mode", help="override config.RETRIEVAL_MODE for this run (vector|hybrid)")
     ap.add_argument("--fusion", help="override config.HYBRID_FUSION for this run (interleave|rrf)")
     ap.add_argument("--with-llm", action="store_true", help="also generate answers (calls Gemini)")
+    ap.add_argument("--events", action="store_true", help="run the event questions in eval/goldset_events.json and exit")
     ap.add_argument("--validate", action="store_true", help="check the gold set against the index and exit")
     ap.add_argument("--tag", default=None, help="save results to eval/results/<tag>.json")
     args = ap.parse_args()
@@ -195,6 +251,9 @@ def main():
     if args.fusion:
         config.HYBRID_FUSION = args.fusion
     k = config.RETRIEVER_K
+
+    if args.events:
+        return run_events_eval(args.with_llm)
 
     goldset = load_goldset(args.goldset)
     vector_db = build_vector_db()

@@ -163,6 +163,28 @@ assistant. Empty cells stay empty. Answers and cards carry the verification stat
 unverified rooms are flagged as possibly outdated, conflicting entries show both
 versions and ask the user to check on site. Lookup matches whole tokens only.
 
+## Events
+
+Events live in SQLite (`data/app.db`, created on first run; the old
+`announcements.json` is migrated automatically). Admin: create / edit /
+duplicate / pin / delete, draft vs published, posters resized to 1200 px. Students
+see a hero for the next event, filters, a card grid and a collapsed "Past
+events" section — events move there by themselves after they end. The assistant
+answers event questions from the live calendar (never from the vector store),
+with today's date in the passage; past and draft events are never offered.
+Checks: `python eval/check_events.py` and `python evaluate.py --events [--with-llm]`.
+
+## Voice input
+
+On the Assistant page, **Ask by voice** records up to 30 s (English, Bahasa
+Melayu, 中文), transcribes it with Gemini, and puts the text in an editable box —
+it is never sent automatically. Voice, typed and quick-query questions share the
+chat rate limit (`CHAT_RATE_LIMIT_*` in `core/config.py`), and each query-log row
+records `input_mode` (`text` / `quick` / `voice`) and whether the transcript was
+edited. **The microphone only works on HTTPS or localhost**, and the browser must
+be allowed to use it. "Read aloud" uses the browser's speech synthesis (free, no
+quota); switch it off with `TTS_ENABLED = False`.
+
 ## Notes
 
 - `chroma_db/` and `data/query_log.jsonl` are generated, not versioned — see

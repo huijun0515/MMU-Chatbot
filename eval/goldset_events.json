@@ -1,0 +1,40 @@
+{
+  "note": "Event answers depend on the date, so this set carries its own fixture calendar and a frozen 'now' (Tuesday 10 Nov 2026, 10:00 Malaysia time). evaluate.py --events loads it into a throw-away database.",
+  "now": "2026-11-10T10:00",
+  "events": [
+    {"title": "FIST Industry Talk: Building with AI Agents", "category": "Academic Talk", "start_at": "2026-11-12T14:00", "end_at": "2026-11-12T16:00", "venue_text": "CLC Lecture Hall C1", "organiser": "Faculty of Information Science and Technology"},
+    {"title": "MMU Melaka Career Fair 2026", "category": "Career", "start_at": "2026-11-14T09:00", "end_at": "2026-11-14T16:00", "venue_text": "Exam Hall", "organiser": "Talent Excellence Centre"},
+    {"title": "Inter-Faculty Futsal Cup: Group Stage", "category": "Sports", "start_at": "2026-11-18T17:00", "end_at": "2026-11-18T21:00", "venue_text": "Sports complex", "organiser": "Sports Unit"},
+    {"title": "Hack Night: Build Something in 6 Hours", "category": "Clubs & Societies", "start_at": "2026-11-20T18:00", "end_at": "2026-11-21T00:00", "venue_text": "FIST Unix Lab", "organiser": "IT Society"},
+    {"title": "CV Clinic and Mock Interviews", "category": "Career", "start_at": "2026-11-26T14:00", "end_at": "2026-11-26T17:00", "venue_text": "Main Hall", "organiser": "Talent Excellence Centre"},
+    {"title": "Orientation Week Welcome Party", "category": "Other", "start_at": "2026-11-03T10:00", "end_at": "2026-11-03T12:00", "venue_text": "Main Hall", "note": "ended last week"},
+    {"title": "Morning Yoga Session", "category": "Sports", "start_at": "2026-11-10T08:00", "end_at": "2026-11-10T09:00", "venue_text": "Sports complex", "note": "ended earlier today"},
+    {"title": "Secret Draft Mixer", "category": "Career", "start_at": "2026-11-13T10:00", "end_at": "2026-11-13T12:00", "venue_text": "Main Hall", "status": "draft", "note": "unpublished"}
+  ],
+  "questions": [
+    {
+      "id": "e01", "question": "Any events this week?",
+      "expected_titles": ["FIST Industry Talk", "MMU Melaka Career Fair"],
+      "forbidden_titles": ["Futsal", "Hack Night", "Orientation", "Secret Draft", "Yoga"],
+      "answer_expect": ["industry talk", "career fair"]
+    },
+    {
+      "id": "e02", "question": "Are there any career events coming up?",
+      "expected_titles": ["MMU Melaka Career Fair", "CV Clinic"],
+      "forbidden_titles": ["Industry Talk", "Orientation", "Secret Draft"],
+      "answer_expect": ["career fair", "cv clinic"]
+    },
+    {
+      "id": "e03", "question": "What's happening on Friday?",
+      "expected_titles": [],
+      "forbidden_titles": ["Secret Draft"],
+      "note": "The only event on Friday 13 Nov is an unpublished draft, so the calendar has nothing for that day."
+    },
+    {
+      "id": "e04", "question": "Any sports events today?",
+      "expected_titles": [],
+      "forbidden_titles": ["Yoga", "Orientation"],
+      "note": "Yoga ended at 09:00 today; a finished event must not be offered as upcoming."
+    }
+  ]
+}

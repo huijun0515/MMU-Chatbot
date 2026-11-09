@@ -7,6 +7,8 @@ Streamlit UI only.
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
 
+from core import config, voice
+from core.rate_limit import try_acquire
 from core.vector_store import get_vector_db
 from core.rag_chain import build_chat_pipeline, ask, trim_history
 from core.query_log import record_feedback
@@ -71,6 +73,48 @@ def _render_feedback(message):
             st.rerun()
 
 
+def _reset_voice():
+    for key in ("voice_raw", "voice_text"):
+        st.session_state.pop(key, None)
+    st.session_state.voice_n = st.session_state.get("voice_n", 0) + 1  # fresh recorder widget
+
+
+def _voice_panel():
+    """Record -> Transcribe -> edit -> Send. The transcript is NEVER sent automatically."""
+    if not config.VOICE_ENABLED:
+        return
+    n = st.session_state.setdefault("voice_n", 0)
+    with st.popover("🎤 Ask by voice"):
+        st.caption(f"Record up to {config.VOICE_MAX_SECONDS} s in English, Bahasa Melayu or 中文, then check the text "
+                   "before sending. The microphone needs HTTPS or localhost, and the browser must be allowed to use it "
+                   "(if recording does nothing, click the lock icon in the address bar and allow the microphone).")
+        audio = st.audio_input("Record your question", key=f"voice_audio_{n}")
+        if audio is not None and st.button("📝 Transcribe", key=f"voice_tx_{n}"):
+            allowed, wait = try_acquire(st.session_state)
+            if not allowed:
+                st.warning(f"Too many requests — please wait {wait}s and try again.")
+            else:
+                try:
+                    with st.spinner("Listening…"):
+                        text = voice.transcribe(audio.getvalue())
+                    st.session_state.voice_raw = text
+                    st.session_state.voice_text = text
+                except voice.VoiceError as exc:
+                    st.error(str(exc))
+        if "voice_raw" in st.session_state:
+            st.text_area("Transcript — fix anything misheard (e.g. room codes) before sending", key="voice_text")
+            c1, c2 = st.columns(2)
+            if c1.button("➤ Send", type="primary", key="voice_send", use_container_width=True):
+                text = st.session_state.voice_text.strip()
+                if text:
+                    st.session_state.voice_query = (text, text != st.session_state.voice_raw)
+                    _reset_voice()
+                    st.rerun()
+            if c2.button("Discard", key="voice_discard", use_container_width=True):
+                _reset_voice()
+                st.rerun()
+
+
 def render_assistant_page():
     pipeline = _load_chat_pipeline()
 
@@ -105,12 +149,26 @@ def render_assistant_page():
             st.markdown(message["content"])
             _render_answer_extras(message)
             if message["role"] == "assistant" and message.get("log_id"):
+                if config.TTS_ENABLED:
+                    st.iframe(voice.read_aloud_html(message["content"]), height=42)
                 _render_feedback(message)
 
+    _voice_panel()
     prompt = st.chat_input("Type your question here...")
+    input_mode, voice_edited = "text", None
     if "quick_query" in st.session_state:
         prompt = st.session_state.quick_query
         del st.session_state.quick_query
+        input_mode = "quick"
+    if "voice_query" in st.session_state:
+        prompt, voice_edited = st.session_state.pop("voice_query")
+        input_mode = "voice"
+
+    if prompt:
+        allowed, wait = try_acquire(st.session_state)
+        if not allowed:
+            st.warning(f"You're sending messages very quickly — please wait {wait}s and try again.")
+            prompt = None
 
     if prompt:
         with st.chat_message("user"):
@@ -120,7 +178,8 @@ def render_assistant_page():
         with st.chat_message("assistant"):
             with st.spinner("🧠 Thinking for the answer..."):
                 try:
-                    response = ask(pipeline, prompt, st.session_state.chat_history)
+                    response = ask(pipeline, prompt, st.session_state.chat_history,
+                                   input_mode=input_mode, voice_edited=voice_edited)
                     ai_answer = response["answer"]
 
                     # Sources and the location photo only appear for grounded answers

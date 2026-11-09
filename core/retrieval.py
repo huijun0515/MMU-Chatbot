@@ -23,6 +23,7 @@ from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
 
 from core import config
+from core.event_context import events_document
 from core.location_lookup import find_matching_location
 
 # similarity_search_with_relevance_scores warns (and prints every retrieved
@@ -179,6 +180,11 @@ class Retriever:
         return docs
 
     def retrieve(self, query):
+        events = events_document(query)
+        if events is not None:  # event questions are answered from the live calendar only
+            events.metadata["source_label"] = "Campus Events"
+            return [events]
+
         docs = self._hybrid(query) if config.RETRIEVAL_MODE == "hybrid" else self._vector(query)
 
         match = find_matching_location(query, self.list_locations_fn())
@@ -187,10 +193,13 @@ class Retriever:
             loc_doc.metadata["relevance_score"] = 1.0
             docs = _cap_locations([loc_doc] + [d for d in docs if d.metadata.get("loc_id") != match.get("id")])
 
-        # Normalize "page" for the document prompt — PDF loaders set an int,
-        # location/other docs may not set it at all.
+        # PDF chunks carry an int page; everything else has none. Build the
+        # label shown to the model: "file, page N" or just the source name.
         for d in docs:
-            d.metadata.setdefault("page", "N/A")
-            if isinstance(d.metadata.get("page"), int):
-                d.metadata["page"] += 1  # 1-indexed for humans
+            page = d.metadata.get("page")
+            d.metadata["page"] = page + 1 if isinstance(page, int) else "N/A"  # 1-indexed for humans
+            d.metadata["source_label"] = (
+                f"{d.metadata.get('source_file', 'Unknown')}, page {d.metadata['page']}"
+                if isinstance(page, int) else d.metadata.get("source_file", "Unknown")
+            )
         return docs[: config.RETRIEVER_K]

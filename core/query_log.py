@@ -14,7 +14,7 @@ from core import config
 from core.logging_setup import logger
 
 
-def log_interaction(question, answer, sources, timestamp, intent="knowledge"):
+def log_interaction(question, answer, sources, timestamp, intent="knowledge", input_mode="text", voice_edited=None):
     """Append one Q&A record. Returns its id so feedback can reference it.
 
     `sources` is what was actually shown to the user (empty for chit-chat and
@@ -27,6 +27,8 @@ def log_interaction(question, answer, sources, timestamp, intent="knowledge"):
         "timestamp": timestamp,
         "question": question,
         "intent": intent,
+        "input_mode": input_mode,          # "text" | "quick" | "voice"
+        "voice_edited": voice_edited,       # voice only: did the user change the transcript?
         "answer": answer,
         "sources": sources,
         "feedback": None,
