@@ -4,21 +4,19 @@ thin router. All RAG logic itself lives in core/rag_chain.py; this module is
 Streamlit UI only.
 """
 
-import os
-
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
 
 from core.vector_store import get_vector_db
-from core.rag_chain import build_chat_chain, ask, trim_history
+from core.rag_chain import build_chat_pipeline, ask, trim_history
 from core.query_log import record_feedback
 from locations import list_locations, location_card_from_context
 
 
 @st.cache_resource
-def _load_chat_chain():
+def _load_chat_pipeline():
     vector_db = get_vector_db()  # same shared handle the admin panel writes to
-    return build_chat_chain(vector_db, list_locations)
+    return build_chat_pipeline(vector_db, list_locations)
 
 
 def _render_location_card(card):
@@ -34,6 +32,18 @@ def _render_location_card(card):
         )
     elif sub:
         st.info(f"{header} — {sub}")
+
+
+def _render_answer_extras(message):
+    """Location card + sources under an assistant message. Used by BOTH the live
+    answer and the history re-render so the two can never disagree; the sources
+    expander is omitted entirely when there are none (chit-chat, ungrounded)."""
+    if message.get("location"):
+        _render_location_card(message["location"])
+    if message.get("sources"):
+        with st.expander("📚 View Sources"):
+            for source in message["sources"]:
+                st.caption(f"📄 {source}")
 
 
 def _render_feedback(message):
@@ -59,7 +69,7 @@ def _render_feedback(message):
 
 
 def render_assistant_page():
-    qa_system = _load_chat_chain()
+    pipeline = _load_chat_pipeline()
 
     st.markdown("<h1 style='text-align: center; color: #0033A0;'>🎓 MMU Campus Assistant</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>Your 24/7 intelligent guide to Multimedia University.</p>", unsafe_allow_html=True)
@@ -90,12 +100,7 @@ def render_assistant_page():
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-            if message.get("location"):
-                _render_location_card(message["location"])
-            if message.get("sources"):
-                with st.expander("📚 View Sources"):
-                    for source in message["sources"]:
-                        st.caption(f"📄 {source}")
+            _render_answer_extras(message)
             if message["role"] == "assistant" and message.get("log_id"):
                 _render_feedback(message)
 
@@ -112,37 +117,28 @@ def render_assistant_page():
         with st.chat_message("assistant"):
             with st.spinner("🧠 Thinking for the answer..."):
                 try:
-                    response = ask(qa_system, prompt, st.session_state.chat_history)
+                    response = ask(pipeline, prompt, st.session_state.chat_history)
                     ai_answer = response["answer"]
 
-                    sources = set()
-                    for doc in response.get("context", []):
-                        label = doc.metadata.get("source_file") or os.path.basename(
-                            doc.metadata.get("source", "Unknown Source"))
-                        sources.add(label)
-
+                    # Sources and the location photo only appear for grounded answers
+                    # (ask() already empties `sources` otherwise).
+                    message = {
+                        "role": "assistant",
+                        "content": ai_answer,
+                        "sources": response["sources"],
+                        "location": location_card_from_context(response["context"])
+                        if response["grounded"] else None,
+                        "log_id": response["log_id"],
+                    }
                     st.markdown(ai_answer)
+                    _render_answer_extras(message)
 
-                    location_card = location_card_from_context(response.get("context", []))
-                    _render_location_card(location_card)
-
-                    if sources:
-                        with st.expander("📚 View Sources"):
-                            for source in sources:
-                                st.caption(f"📄 {source}")
-
+                    # Memory covers chit-chat too, so "thanks" after an answer stays in context.
                     st.session_state.chat_history.append(HumanMessage(content=prompt))
                     st.session_state.chat_history.append(AIMessage(content=ai_answer))
                     st.session_state.chat_history = trim_history(st.session_state.chat_history)
 
-                    log_id = response.get("log_id")
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": ai_answer,
-                        "sources": list(sources),
-                        "location": location_card,
-                        "log_id": log_id,
-                    })
+                    st.session_state.messages.append(message)
                     st.rerun()  # redraw via the message loop so the 👍/👎 buttons attach
 
                 except Exception as e:

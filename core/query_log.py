@@ -14,14 +14,19 @@ from core import config
 from core.logging_setup import logger
 
 
-def log_interaction(question, answer, sources, timestamp):
-    """Append one Q&A record. Returns its id so feedback can reference it."""
+def log_interaction(question, answer, sources, timestamp, intent="knowledge"):
+    """Append one Q&A record. Returns its id so feedback can reference it.
+
+    `sources` is what was actually shown to the user (empty for chit-chat and
+    ungrounded answers); `intent` is "chitchat" or "knowledge".
+    """
     os.makedirs(os.path.dirname(config.QUERY_LOG_PATH), exist_ok=True)
     entry_id = str(uuid.uuid4())[:8]
     record = {
         "id": entry_id,
         "timestamp": timestamp,
         "question": question,
+        "intent": intent,
         "answer": answer,
         "sources": sources,
         "feedback": None,

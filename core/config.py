@@ -65,6 +65,54 @@ CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 RETRIEVER_K = 3
 
+# ── When are "View Sources" shown? Two gates, both must let a message through ──
+# Layer 1 — intent: obvious social messages (greeting / thanks / goodbye / "who
+# are you") skip retrieval entirely, are answered directly by the LLM, and show
+# no sources. Matching is a FULL match on the normalized message (lowercased,
+# punctuation stripped), so "hi, where is the library?" is still a knowledge
+# question. Anything that doesn't match falls through to layer 2, so a miss here
+# is harmless — it just costs one retrieval.
+INTENT_GATE_ENABLED = True
+CHITCHAT_MAX_CHARS = 60
+CHITCHAT_PATTERNS = [
+    # greetings
+    r"(?:hi+|hello+|hey+|hiya|howdy|yo|greetings|hai|helo|assalamualaikum)(?: (?:there|everyone|all|bot|assistant|mmu))*",
+    r"good (?:morning|afternoon|evening|night|day)",
+    r"selamat (?:pagi|petang|malam|tengahari)",
+    # how-are-you / small talk
+    r"how (?:are|r) (?:you|u)(?: doing)?(?: today)?",
+    r"how(?: is| s)? it going",
+    r"(?:whats|what is) up",
+    r"sup",
+    r"apa khabar",
+    # thanks
+    r"(?:thanks+|thank you|thank u|thx|ty|tq|cheers|much appreciated|many thanks|terima kasih)(?: (?:so|very|a) (?:much|lot))?(?: (?:bot|assistant))?",
+    # acknowledgements
+    r"(?:ok+|okay|okey|cool|nice|great|awesome|alright|got it|i see|noted|sure|fine)",
+    # farewells
+    r"(?:bye+|goodbye|good bye|see you|see ya|cya|take care|goodnight)(?: (?:later|soon))?",
+    # identity / capability
+    r"(?:who|what) are you",
+    r"what(?: is| s)? your name",
+    r"who (?:made|created|built|developed) you",
+    r"are you (?:a |an )?(?:bot|robot|ai|human|real)",
+    r"what (?:can you do|do you do)",
+    # Chinese
+    r"(?:你好|您好|嗨|哈喽|哈啰|早安|早上好|下午好|晚上好|晚安|谢谢|谢谢你|谢谢您|多谢|感谢|再见|拜拜|你是谁|你叫什么名字|你叫什么|你好吗|你怎么样|最近怎么样|你能做什么|你会什么)(?:啊|呀|吗|啦|哦|喔)?",
+]
+
+# Layer 2 — grounding: for everything else we still retrieve, but a chunk only
+# counts (is shown to the model AND listed as a source) if its relevance score
+# (1 - L2distance/sqrt(2), range roughly -0.4..1) reaches this threshold.
+# Measured on this index with all-MiniLM-L6-v2: real questions score 0.22-0.55 on
+# their best chunk; greetings and off-topic text score <= 0.13. RE-MEASURE and
+# retune if you change the embedding model — scales differ per model.
+GROUNDING_GATE_ENABLED = True
+MIN_RELEVANCE_SCORE = 0.15
+# If the model itself says it found nothing (the fallback line in the answer
+# prompt), no sources are shown even when some chunk cleared the threshold.
+NO_ANSWER_MARKER = "couldn't find that specific information"
+
 # ── Ingestion rate-limit protection (only exercised when
 #    EMBEDDING_BACKEND == "gemini"; local embeddings need none of this) ──
 EMBED_BATCH_SIZE = 15

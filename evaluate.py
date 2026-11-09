@@ -25,7 +25,7 @@ from rank_bm25 import BM25Okapi
 
 from core import config
 from core.vector_store import build_vector_db
-from core.location_lookup import find_matching_location
+from core.rag_chain import retrieve_documents
 
 
 def _tokenize(text):
@@ -48,15 +48,10 @@ def build_bm25_corpus(vector_db):
     return bm25, sources
 
 
-def rag_retrieve_sources(vector_db, list_locations_fn, question, k):
-    """Mirror core/rag_chain.py's hybrid retriever (semantic + exact location match)."""
-    docs = vector_db.as_retriever(search_kwargs={"k": k}).invoke(question)
-    match = find_matching_location(question, list_locations_fn())
-    sources = []
-    if match:
-        sources.append("Campus Directory")
-    sources += [d.metadata.get("source_file", "Unknown") for d in docs]
-    return sources[:k]
+def rag_retrieve_sources(vector_db, list_locations_fn, question):
+    """The live retriever itself (exact location match + relevance-gated semantic search)."""
+    docs = retrieve_documents(vector_db, list_locations_fn, question)
+    return [d.metadata.get("source_file", "Unknown") for d in docs]
 
 
 def bm25_retrieve_sources(bm25, sources, question, k):
@@ -74,13 +69,13 @@ def run_answer_relevancy(questions):
         print("\n(No GEMINI_API_KEY configured — skipping answer-relevancy pass.)")
         return None
 
-    from core.rag_chain import build_chat_chain
+    from core.rag_chain import build_chat_pipeline, ask
     from locations import list_locations
 
-    chain = build_chat_chain(build_vector_db(), list_locations)
+    pipeline = build_chat_pipeline(build_vector_db(), list_locations)
     results = []
     for item in questions:
-        response = chain.invoke({"input": item["question"], "chat_history": []})
+        response = ask(pipeline, item["question"], [], log=False)
         answer = response["answer"].lower()
         keywords = [k.lower() for k in item.get("expected_keywords", [])]
         hit = any(k in answer for k in keywords) if keywords else None
@@ -105,7 +100,7 @@ def main():
     for item in goldset:
         q, expected = item["question"], item["expected_source"]
 
-        rag_sources = rag_retrieve_sources(vector_db, list_locations, q, k)
+        rag_sources = rag_retrieve_sources(vector_db, list_locations, q)
         rag_hit = expected in rag_sources
         rag_hits += rag_hit
 
