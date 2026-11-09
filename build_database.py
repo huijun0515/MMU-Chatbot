@@ -69,7 +69,11 @@ def build_database():
         print("  No PDFs found in ./data — skipping.")
 
     print("Step 4: Re-indexing structured locations ...")
-    from locations import list_locations, location_to_document
+    from locations import import_from_excel, list_locations, location_to_document
+
+    if os.path.exists(config.LOCATIONS_XLSX):
+        print(f"  Importing {config.LOCATIONS_XLSX} ...")
+        import_from_excel()
 
     location_docs = [location_to_document(rec) for rec in list_locations()]
     if location_docs:

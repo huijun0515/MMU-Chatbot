@@ -26,40 +26,63 @@ from langchain_core.documents import Document
 from core import config
 from core.vector_store import get_vector_db, embed_with_retry
 from core.logging_setup import logger
+from core.location_import import read_locations_xlsx
 
 LOCATIONS_DIR = config.LOCATIONS_DIR
 LOCATIONS_JSON = os.path.join(LOCATIONS_DIR, "locations.json")
 
-CATEGORIES = ["Classroom", "Lecture Hall", "Lab", "Office", "Facility", "Landmark", "Other"]
+PLACES_PAGE_LIMIT = 60
+CATEGORIES = ["Classroom", "Lecture Hall", "Tutorial Room", "Lab", "Office", "Faculty", "Facility",
+              "Building", "Hostel", "Landmark", "Other"]
 
-# A few placeholder records so the feature works out of the box.
-# ⚠️ Replace these with your real MMU data (and add photos) via the Admin panel.
-SEED = [
-    {
-        "id": "library", "name": "Main Library", "aliases": ["Library", "Perpustakaan"],
-        "category": "Facility", "building": "Library Building", "floor": "Ground–Level 3",
-        "description": "The central campus library with study zones, discussion rooms and computer labs.",
-        "directions": "From the main entrance lobby, head straight past the admin counter; the library is the large glass building on your left.",
-        "landmarks": "Next to the student cafeteria; opposite the main lecture blocks.",
-        "image": "",
-    },
-    {
-        "id": "finance-office", "name": "Finance Office", "aliases": ["Bursary", "Fees Office"],
-        "category": "Office", "building": "Administration Building", "floor": "Level 1",
-        "description": "Handles fee payments, financial aid and billing enquiries.",
-        "directions": "Enter the Administration Building main door, take the stairs or lift to Level 1, turn right; the Finance Office is the second door.",
-        "landmarks": "Beside the Student Services Centre.",
-        "image": "",
-    },
-    {
-        "id": "ssc", "name": "Student Services Centre", "aliases": ["SSC"],
-        "category": "Office", "building": "Administration Building", "floor": "Ground Level",
-        "description": "One-stop centre for student matters: registration, letters, ID cards and general enquiries.",
-        "directions": "On the ground floor of the Administration Building, immediately to the left of the main entrance.",
-        "landmarks": "Below the Finance Office; near the covered walkway.",
-        "image": "",
-    },
-]
+# The three invented placeholder records this project used to ship with. The
+# Excel file now has real versions of them, so any copy left in locations.json is dropped on import.
+LEGACY_SEED_IDS = {"library", "finance-office", "ssc"}
+
+# Verification status -> (badge label, colours, sentence the assistant is told)
+_STATUS_STYLES = {
+    "official": ("Official", "#166534", "#dcfce7",
+                 "Official MMU source."),
+    "partial": ("Official (partial)", "#166534", "#dcfce7",
+                "Official MMU source, but only partly documented."),
+    "unverified": ("Unverified", "#854d0e", "#fef9c3",
+                   "UNVERIFIED: taken from an older unofficial list (2014/15). "
+                   "This room information may have changed or be outdated."),
+    "conflict": ("Conflict - check on site", "#991b1b", "#fee2e2",
+                 "CONFLICT: sources disagree about where this is. "
+                 "It must be checked on site."),
+    "original": ("Original file", "#1e40af", "#dbeafe",
+                 "From the project's original location list (not independently verified)."),
+}
+
+
+def _status_key(status):
+    s = (status or "").lower()
+    if s.startswith("official source (partial"):
+        return "partial"
+    if s.startswith("official"):
+        return "official"
+    if s.startswith("unverified"):
+        return "unverified"
+    if s.startswith("conflict"):
+        return "conflict"
+    if s.startswith("from your original") or s.startswith("original"):
+        return "original"
+    return None
+
+
+def status_sentence(status):
+    key = _status_key(status)
+    return _STATUS_STYLES[key][3] if key else ""
+
+
+def status_badge_html(status):
+    key = _status_key(status)
+    if not key:
+        return ""
+    label, fg, bg, _ = _STATUS_STYLES[key]
+    return (f"<span style='display:inline-block;background:{bg};color:{fg};font-size:.7rem;"
+            f"font-weight:700;padding:2px 9px;border-radius:999px;margin:0 6px 6px 0;'>{label}</span>")
 
 
 # ──────────────────────────────────────────────────────────────
@@ -72,8 +95,7 @@ def _ensure_dir():
 def _load():
     _ensure_dir()
     if not os.path.exists(LOCATIONS_JSON):
-        _save(SEED)
-        return list(SEED)
+        return import_from_excel() if os.path.exists(config.LOCATIONS_XLSX) else []
     try:
         with open(LOCATIONS_JSON, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -86,6 +108,34 @@ def _save(items):
     _ensure_dir()
     with open(LOCATIONS_JSON, "w", encoding="utf-8") as f:
         json.dump(items, f, indent=2, ensure_ascii=False)
+
+
+def import_from_excel(path=None):
+    """
+    Upsert every row of the Excel file into locations.json (by room code /
+    id — re-importing never duplicates) and return the full list. Records
+    that are not in the file (e.g. added in the admin panel) are kept, apart
+    from the legacy placeholder seed records. Does NOT touch the vector DB;
+    call resync_all() afterwards.
+    """
+    imported = read_locations_xlsx(path or config.LOCATIONS_XLSX)
+    existing = {}
+    if os.path.exists(LOCATIONS_JSON):
+        try:
+            with open(LOCATIONS_JSON, "r", encoding="utf-8") as f:
+                existing = {r["id"]: r for r in json.load(f)}
+        except (OSError, json.JSONDecodeError):
+            logger.exception("Could not read %s before import", LOCATIONS_JSON)
+    for loc_id in LEGACY_SEED_IDS:
+        existing.pop(loc_id, None)
+    for rec in imported:
+        old = existing.get(rec["id"])
+        if old and old.get("image"):
+            rec["image"] = old["image"]  # keep a photo added in the admin panel
+        existing[rec["id"]] = rec
+    items = list(existing.values())
+    _save(items)
+    return items
 
 
 def list_locations():
@@ -113,29 +163,39 @@ def image_path(image_name):
 # ──────────────────────────────────────────────────────────────
 def location_to_document(rec):
     """Build the Document a location record is embedded as. Public: also
-    used by core/rag_chain.py to inject an exact-match location into context."""
+    used by core/retrieval.py to inject an exact-match location into context.
+    Empty fields are omitted, never filled in. The verification status is part
+    of the text so the model sees it and can qualify its answer."""
     aliases = ", ".join(rec.get("aliases", []) or [])
-    parts = [f"Campus location: {rec.get('name','')}"]
+    name = rec.get("name", "")
+    head = f"Campus location: {name}"
     if aliases:
-        parts.append(f" (also known as: {aliases})")
-    parts.append(f".\nCategory: {rec.get('category','')}.")
-    parts.append(f"\nBuilding / block: {rec.get('building','')}.")
-    parts.append(f"\nFloor: {rec.get('floor','')}.")
-    if rec.get("description"):
-        parts.append(f"\nDescription: {rec['description']}")
-    if rec.get("directions"):
-        parts.append(f"\nHow to get there: {rec['directions']}")
-    if rec.get("landmarks"):
-        parts.append(f"\nNearby landmarks: {rec['landmarks']}")
-    text = "".join(parts)
+        head += f" (also known as: {aliases})"
+    lines = [head + "."]
+    code = rec.get("code", "")
+    if code and code != name:
+        lines.append(f"Room code: {code}.")
+    for label, key in (("Category", "category"), ("Building / block", "building"), ("Floor", "floor"),
+                       ("Opening hours", "opening_hours"), ("Contact", "contact"),
+                       ("Description", "description"), ("How to get there", "directions"),
+                       ("Nearby landmarks", "landmarks"), ("Notes", "notes")):
+        if rec.get(key):
+            lines.append(f"{label}: {rec[key]}")
+    sentence = status_sentence(rec.get("verification_status"))
+    if sentence:
+        lines.append(f"Information status: {sentence}")
+    text = "\n".join(lines)
 
     meta = {
         "type": "location",
         "loc_id": rec["id"],
-        "name": rec.get("name", ""),
+        "name": name,
         "building": rec.get("building", ""),
         "floor": rec.get("floor", ""),
         "image": rec.get("image", ""),
+        "status": rec.get("verification_status", ""),
+        "opening_hours": rec.get("opening_hours", ""),
+        "contact": rec.get("contact", ""),
         "source_file": "Campus Directory",
     }
     return Document(page_content=text, metadata=meta)
@@ -198,7 +258,7 @@ def resync_all():
 #  Chat helper (#8): find a location card in retrieved context
 # ──────────────────────────────────────────────────────────────
 def location_card_from_context(context_docs):
-    """Return {name, building, floor, image_path} for the top location doc, or None."""
+    """Card data (name, building, floor, status, hours, contact, image) for the top location doc, or None."""
     for doc in context_docs or []:
         md = getattr(doc, "metadata", {}) or {}
         if md.get("type") == "location":
@@ -206,6 +266,9 @@ def location_card_from_context(context_docs):
                 "name": md.get("name", ""),
                 "building": md.get("building", ""),
                 "floor": md.get("floor", ""),
+                "status": md.get("status", ""),
+                "opening_hours": md.get("opening_hours", ""),
+                "contact": md.get("contact", ""),
                 "image_path": image_path(md.get("image", "")),
             }
     return None
@@ -232,17 +295,26 @@ def _render_loc_card(rec):
         p = image_path(rec.get("image", ""))
         if p:
             st.image(p, use_container_width=True)
-        st.markdown(f"<span class='loc-meta'>{rec.get('category','')}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='loc-meta'>{rec.get('category','')}</span>"
+                    + status_badge_html(rec.get("verification_status")), unsafe_allow_html=True)
         st.markdown(f"<div class='loc-title'>{rec.get('name','')}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='loc-sub'>🏢 {rec.get('building','')} · {rec.get('floor','')}</div>",
-                    unsafe_allow_html=True)
+        where = " · ".join(x for x in (rec.get("building"), rec.get("floor")) if x)
+        if where:
+            st.markdown(f"<div class='loc-sub'>🏢 {where}</div>", unsafe_allow_html=True)
+        if rec.get("opening_hours"):
+            st.markdown(f"<div class='loc-sub'>🕒 {rec['opening_hours']}</div>", unsafe_allow_html=True)
+        if rec.get("contact"):
+            st.markdown(f"<div class='loc-sub'>📞 {rec['contact']}</div>", unsafe_allow_html=True)
         if rec.get("description"):
             st.markdown(f"<div class='loc-desc'>{rec['description']}</div>", unsafe_allow_html=True)
-        if rec.get("directions"):
-            with st.expander("🧭 How to get there"):
-                st.write(rec["directions"])
+        if rec.get("directions") or rec.get("notes"):
+            with st.expander("🧭 Details"):
+                if rec.get("directions"):
+                    st.write(rec["directions"])
                 if rec.get("landmarks"):
                     st.caption(f"📍 Nearby: {rec['landmarks']}")
+                if rec.get("notes"):
+                    st.caption(f"ℹ️ {rec['notes']}")
 
 
 def render_directory_page():
@@ -262,7 +334,7 @@ def render_directory_page():
     with c1:
         query = st.text_input("🔎 Search", placeholder="e.g. library, finance, BR1024")
     with c2:
-        cats = ["All"] + CATEGORIES
+        cats = ["All"] + sorted({r.get("category", "") for r in items if r.get("category")})
         cat = st.selectbox("Category", cats)
 
     def _match(rec):
@@ -270,7 +342,7 @@ def render_directory_page():
             return False
         if query:
             hay = " ".join([
-                rec.get("name", ""), rec.get("building", ""),
+                rec.get("name", ""), rec.get("code", ""), rec.get("building", ""),
                 " ".join(rec.get("aliases", []) or []), rec.get("description", ""),
             ]).lower()
             if query.lower() not in hay:
@@ -282,9 +354,12 @@ def render_directory_page():
         st.info("No places match your search.")
         return
 
+    shown = filtered[:PLACES_PAGE_LIMIT]
+    if len(filtered) > len(shown):
+        st.caption(f"Showing {len(shown)} of {len(filtered)} places — search or pick a category to narrow down.")
     cols_per_row = 3
-    for i in range(0, len(filtered), cols_per_row):
-        row = filtered[i:i + cols_per_row]
+    for i in range(0, len(shown), cols_per_row):
+        row = shown[i:i + cols_per_row]
         cols = st.columns(cols_per_row, gap="large")
         for col, rec in zip(cols, row):
             with col:
@@ -340,6 +415,15 @@ def render_admin_locations():
             st.rerun()
 
     st.divider()
+
+    if os.path.exists(config.LOCATIONS_XLSX):
+        st.caption(f"Source file: `{config.LOCATIONS_XLSX}`")
+        if st.button("📥 Re-import from Excel", help="Upsert every row of the Excel file, then re-sync the assistant"):
+            with st.spinner("Importing and re-syncing…"):
+                total = len(import_from_excel())
+                n = resync_all()
+            st.cache_resource.clear()
+            st.success(f"Imported — {total} locations on file, {n} synced to the assistant.")
 
     top1, top2 = st.columns([3, 1])
     with top1:

@@ -153,6 +153,16 @@ evidence text (file-level "source-hit" overstates quality). Results are in
 Known misses: q01 (the data has the graduation *rule* but no credit total),
 q18 ("July" vs "JUL" in the calendar), q24 (paraphrased location question).
 
+## Campus locations
+
+`data/Location File.xlsx` is the source of truth for places (code, name, category,
+building, floor, directions, aliases, opening hours, contact, source, verification
+status, notes). `python build_database.py` imports it; in the admin panel,
+**Re-import from Excel** upserts by room code (never duplicates) and re-syncs the
+assistant. Empty cells stay empty. Answers and cards carry the verification status:
+unverified rooms are flagged as possibly outdated, conflicting entries show both
+versions and ask the user to check on site. Lookup matches whole tokens only.
+
 ## Notes
 
 - `chroma_db/` and `data/query_log.jsonl` are generated, not versioned — see

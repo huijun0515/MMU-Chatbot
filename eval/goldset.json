@@ -163,22 +163,22 @@
     "id": "q23", "kind": "answerable", "category": "location",
     "question": "Where is the finance office located?",
     "expected_source": "Campus Directory",
-    "evidence": ["Campus location: Finance Office"],
+    "evidence": ["Campus location: Finance Division"],
     "expected_keywords": ["administration building", "level 1"]
   },
   {
     "id": "q24", "kind": "answerable", "category": "location",
     "question": "Where can I go to pay my fees?",
     "expected_source": "Campus Directory",
-    "evidence": ["Handles fee payments"],
+    "evidence": ["Campus location: Finance Division"],
     "expected_keywords": ["finance office"],
-    "note": "No alias match is possible here, so this exercises semantic location retrieval only."
+    "note": "No alias match is possible here (no code/name in the question), so this exercises semantic location retrieval."
   },
   {
     "id": "q25", "kind": "answerable", "category": "location",
     "question": "Where is SSC?",
     "expected_source": "Campus Directory",
-    "evidence": ["Campus location: Student Services Centre"],
+    "evidence": ["Campus location: Student Services Centre (SSC)"],
     "expected_keywords": ["administration building"]
   },
   {

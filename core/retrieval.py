@@ -100,6 +100,20 @@ def _fuse_rrf(vec_docs, bm_docs):
     return [by_id[i] for i in sorted(score, key=score.__getitem__, reverse=True)]
 
 
+def _cap_locations(docs):
+    """Keep at most config.MAX_LOCATION_CHUNKS campus-directory chunks. With
+    ~150 location records indexed, they would otherwise crowd the handbook and
+    facility chunks out of the top-k for any query that mentions a building."""
+    kept, n = [], 0
+    for d in docs:
+        if d.metadata.get("type") == "location":
+            n += 1
+            if n > config.MAX_LOCATION_CHUNKS:
+                continue
+        kept.append(d)
+    return kept
+
+
 def _location_record_to_document(rec):
     from locations import location_to_document  # local import avoids a cycle at module load
 
@@ -141,8 +155,10 @@ class Retriever:
         if not self._passes_hybrid_gate(query, vec):
             return []
 
-        vec_docs = [d for d, _ in vec]
-        bm_docs = [d for d, _ in self._bm25_index().search(query, config.HYBRID_POOL)]
+        # Capped per ranking, BEFORE merging: otherwise location records take
+        # BM25's trusted top-N seats and push the real answer chunk out.
+        vec_docs = _cap_locations([d for d, _ in vec])
+        bm_docs = _cap_locations([d for d, _ in self._bm25_index().search(query, config.HYBRID_POOL)])
         merge = _fuse_rrf if config.HYBRID_FUSION == "rrf" else _fuse_interleave
 
         vec_scores = {d.id: s for d, s in vec}
@@ -156,7 +172,7 @@ class Retriever:
                 d for d in merged
                 if vec_scores.get(d.id, float("-inf")) >= config.MIN_RELEVANCE_SCORE or d.id in trusted
             ]
-        docs = merged[: config.RETRIEVER_K]
+        docs = _cap_locations(merged)[: config.RETRIEVER_K]
         for d in docs:  # informational only; None = found by BM25 alone
             s = vec_scores.get(d.id)
             d.metadata["relevance_score"] = None if s is None else round(s, 3)
@@ -169,7 +185,7 @@ class Retriever:
         if match:
             loc_doc = _location_record_to_document(match)
             loc_doc.metadata["relevance_score"] = 1.0
-            docs = [loc_doc] + [d for d in docs if d.metadata.get("loc_id") != match.get("id")]
+            docs = _cap_locations([loc_doc] + [d for d in docs if d.metadata.get("loc_id") != match.get("id")])
 
         # Normalize "page" for the document prompt — PDF loaders set an int,
         # location/other docs may not set it at all.

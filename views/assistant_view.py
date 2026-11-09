@@ -10,7 +10,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from core.vector_store import get_vector_db
 from core.rag_chain import build_chat_pipeline, ask, trim_history
 from core.query_log import record_feedback
-from locations import list_locations, location_card_from_context
+from locations import list_locations, location_card_from_context, status_badge_html
 
 
 @st.cache_resource
@@ -22,16 +22,19 @@ def _load_chat_pipeline():
 def _render_location_card(card):
     if not card:
         return
-    header = f"📍 {card.get('name', '')}"
-    sub = " · ".join([x for x in [card.get("building", ""), card.get("floor", "")] if x])
+    sub = " · ".join(x for x in [card.get("building", ""), card.get("floor", "")] if x)
     if card.get("image_path"):
-        st.image(
-            card["image_path"],
-            caption=f"{header}" + (f" — {sub}" if sub else ""),
-            use_container_width=True,
-        )
-    elif sub:
-        st.info(f"{header} — {sub}")
+        st.image(card["image_path"], caption=f"📍 {card.get('name', '')}" + (f" — {sub}" if sub else ""),
+                 use_container_width=True)
+    else:
+        st.markdown(f"**📍 {card.get('name', '')}**" + (f" — {sub}" if sub else ""))
+    badge = status_badge_html(card.get("status"))
+    if badge:
+        st.markdown(badge, unsafe_allow_html=True)
+    if card.get("opening_hours"):
+        st.caption(f"🕒 {card['opening_hours']}")
+    if card.get("contact"):
+        st.caption(f"📞 {card['contact']}")
 
 
 def _render_answer_extras(message):

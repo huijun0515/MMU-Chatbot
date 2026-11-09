@@ -21,6 +21,7 @@ cryptography==46.0.6
 dataclasses-json==0.6.7
 distro==1.9.0
 durationpy==0.10
+et_xmlfile==2.0.0
 filelock==3.25.2
 filetype==1.2.0
 flatbuffers==25.12.19
@@ -35,12 +36,12 @@ greenlet==3.3.2
 grpcio==1.80.0
 h11==0.16.0
 hf-xet==1.8.0
-httpcore==1.0.9
 httpcore2==2.16.0
+httpcore==1.0.9
 httptools==0.7.1
-httpx==0.28.1
 httpx-sse==0.4.3
 httpx2==2.16.0
+httpx==0.28.1
 huggingface_hub==1.33.0
 idna==3.20
 importlib_metadata==8.7.1
@@ -49,10 +50,9 @@ Jinja2==3.1.6
 joblib==1.6.0
 jsonpatch==1.33
 jsonpointer==3.1.1
-jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
+jsonschema==4.26.0
 kubernetes==35.0.0
-langchain==1.2.15
 langchain-chroma==1.1.0
 langchain-classic==1.0.3
 langchain-community==0.4.1
@@ -61,10 +61,11 @@ langchain-google-genai==4.2.1
 langchain-huggingface==1.2.3
 langchain-protocol==0.0.21
 langchain-text-splitters==1.1.1
-langgraph==1.1.6
+langchain==1.2.15
 langgraph-checkpoint==4.0.1
 langgraph-prebuilt==1.0.9
 langgraph-sdk==0.3.12
+langgraph==1.1.6
 langsmith==0.14.17
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
@@ -79,6 +80,7 @@ networkx==3.6.1
 numpy==1.26.4
 oauthlib==3.3.1
 onnxruntime==1.24.4
+openpyxl==3.1.5
 opentelemetry-api==1.40.0
 opentelemetry-exporter-otlp-proto-common==1.40.0
 opentelemetry-exporter-otlp-proto-grpc==1.40.0
@@ -98,8 +100,8 @@ pyasn1==0.6.3
 pyasn1_modules==0.4.2
 pybase64==1.4.3
 pycparser==3.0
-pydantic==2.12.5
 pydantic-settings==2.13.1
+pydantic==2.12.5
 pydantic_core==2.41.5
 pydeck==0.9.1
 Pygments==2.20.0
@@ -113,9 +115,9 @@ PyYAML==6.0.3
 rank-bm25==0.2.2
 referencing==0.37.0
 regex==2026.11.7
-requests==2.33.1
 requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
+requests==2.33.1
 rich==14.3.3
 rpds-py==0.30.0
 safetensors==0.8.0

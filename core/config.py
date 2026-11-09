@@ -33,6 +33,7 @@ def get_secret(key, default=None):
 DATA_DIR = "./data"
 CHROMA_DIR = "./chroma_db"
 LOCATIONS_DIR = "./locations"
+LOCATIONS_XLSX = "./data/Location File.xlsx"
 ANNOUNCE_DIR = "./announcements"
 QUERY_LOG_PATH = "./data/query_log.jsonl"
 
@@ -78,6 +79,7 @@ RRF_K = 60         # RRF damping constant (only used when HYBRID_FUSION = "rrf")
 # MIN_RELEVANCE_SCORE; a chunk that only vector search found must still clear it.
 # (N=1 lost recall; N=2..5 kept it, and 2 left the fewest off-topic sources.)
 HYBRID_BM25_TRUSTED = 2
+MAX_LOCATION_CHUNKS = 1  # campus-directory chunks allowed in the top-k (incl. an exact match)
 # Hybrid gate, second way through: a query the embedding model finds unimpressive
 # (e.g. "When is Deepavali in 2026?" scores 0.08) is still in-domain if the
 # best-matching chunk contains most of its content words. Off-topic text doesn't

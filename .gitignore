@@ -6,3 +6,6 @@ __pycache__/
 # Generated/runtime data — rebuild with build_database.py, not versioned
 chroma_db/
 data/query_log.jsonl
+
+# Office lock files
+~$*
