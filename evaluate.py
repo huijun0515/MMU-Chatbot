@@ -37,6 +37,7 @@ from rank_bm25 import BM25Okapi
 from core import config
 from core.vector_store import build_vector_db
 from core.retrieval import Retriever
+from core import language
 
 GOLDSET_PATH = "eval/goldset.json"
 RESULTS_DIR = "eval/results"
@@ -270,9 +271,15 @@ def main():
 
     bm25 = Bm25Baseline(corpus)
     retriever = Retriever(vector_db, list_locations)
+    # Non-English questions are translated to an English search query exactly as
+    # the live pipeline does — this needs the LLM, so it is skipped without a key.
+    llm = None
+    if config.get_secret("GEMINI_API_KEY"):
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        llm = ChatGoogleGenerativeAI(model=config.LLM_MODEL, temperature=0, google_api_key=config.get_secret("GEMINI_API_KEY"))
     rows = []
     for item in goldset:
-        q = item["question"]
+        q = language.query_for_retrieval(item["question"], llm)
         rag_chunks = docs_to_chunks(retriever.retrieve(q))
         row = {"id": item["id"], "kind": item["kind"], "category": item["category"], "question": q,
                "expected_source": item.get("expected_source"), "rag_n_chunks": len(rag_chunks),

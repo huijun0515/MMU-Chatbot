@@ -1,89 +1,83 @@
 """
-JSONL query logging: one line per question asked, used both for analytics
-and as raw material for building/expanding eval/goldset.json later.
+Query log (SQLite table `query_log`): one row per question asked — used for
+analytics (admin Insights), feedback, and as raw material for the gold set.
 
-Feedback (👍/👎) is cheap to capture, so it's optional per entry and updated
-in place by rewriting the file — fine at the scale of an FYP demo.
+Privacy: student-ID-like numbers and phone numbers are masked BEFORE anything is
+stored (see scrub), no names/IDs are collected, and rows older than
+config.QUERY_LOG_RETENTION_DAYS are deleted automatically (core/db.py).
 """
 
 import json
-import os
+import re
 import uuid
 
-from core import config
+from core import db
 from core.logging_setup import logger
 
+# MMU student IDs are 10 digits; Malaysian phone numbers look like 012-345 6789 / +60123456789.
+# Room codes (MNCR1001) contain letters, so they are untouched.
+_PHONE_RE = re.compile(r"(?<!\w)(?:\+?6?0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4})(?!\w)")
+_ID_RE = re.compile(r"(?<![\w.])\d{9,12}(?![\w.])")
 
-def log_interaction(question, answer, sources, timestamp, intent="knowledge", input_mode="text", voice_edited=None):
-    """Append one Q&A record. Returns its id so feedback can reference it.
+
+def scrub(text):
+    text = _PHONE_RE.sub("[PHONE]", text or "")
+    return _ID_RE.sub("[ID]", text)
+
+
+def log_interaction(question, answer, sources, timestamp, intent="knowledge", input_mode="text",
+                    voice_edited=None, language="en"):
+    """Store one Q&A row. Returns its id so feedback can reference it.
 
     `sources` is what was actually shown to the user (empty for chit-chat and
     ungrounded answers); `intent` is "chitchat" or "knowledge".
     """
-    os.makedirs(os.path.dirname(config.QUERY_LOG_PATH), exist_ok=True)
     entry_id = str(uuid.uuid4())[:8]
-    record = {
-        "id": entry_id,
-        "timestamp": timestamp,
-        "question": question,
-        "intent": intent,
-        "input_mode": input_mode,          # "text" | "quick" | "voice"
-        "voice_edited": voice_edited,       # voice only: did the user change the transcript?
-        "answer": answer,
-        "sources": sources,
-        "feedback": None,
-    }
     try:
-        with open(config.QUERY_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except OSError:
+        db.ensure_ready()
+        conn = db.connect()
+        try:
+            with conn:
+                conn.execute(
+                    "INSERT INTO query_log (id,ts,question,answer,intent,language,input_mode,voice_edited,sources)"
+                    " VALUES (?,?,?,?,?,?,?,?,?)",
+                    (entry_id, timestamp, scrub(question), scrub(answer), intent, language, input_mode,
+                     None if voice_edited is None else int(bool(voice_edited)),
+                     json.dumps(sources, ensure_ascii=False)),
+                )
+        finally:
+            conn.close()
+    except Exception:
         logger.exception("Failed to write query log entry")
     return entry_id
 
 
 def record_feedback(entry_id, value):
     """Set feedback ("up"/"down") on a previously logged entry, by id."""
-    if not os.path.exists(config.QUERY_LOG_PATH):
-        return
     try:
-        with open(config.QUERY_LOG_PATH, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    except OSError:
-        logger.exception("Failed to read query log for feedback update")
-        return
-
-    changed = False
-    for i, line in enumerate(lines):
+        db.ensure_ready()
+        conn = db.connect()
         try:
-            record = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if record.get("id") == entry_id:
-            record["feedback"] = value
-            lines[i] = json.dumps(record, ensure_ascii=False) + "\n"
-            changed = True
-            break
-
-    if changed:
-        try:
-            with open(config.QUERY_LOG_PATH, "w", encoding="utf-8") as f:
-                f.writelines(lines)
-        except OSError:
-            logger.exception("Failed to persist query log feedback update")
+            with conn:
+                conn.execute("UPDATE query_log SET feedback=? WHERE id=?", (value, entry_id))
+        finally:
+            conn.close()
+    except Exception:
+        logger.exception("Failed to persist feedback")
 
 
 def load_all():
-    """Return every logged record, for analytics or evaluate.py."""
-    if not os.path.exists(config.QUERY_LOG_PATH):
-        return []
-    records = []
-    with open(config.QUERY_LOG_PATH, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                records.append(json.loads(line))
-            except json.JSONDecodeError:
-                logger.warning("Skipping malformed query log line")
-    return records
+    """Every logged row as a dict (oldest first), for analytics or evaluate.py."""
+    db.ensure_ready()
+    conn = db.connect()
+    try:
+        rows = []
+        for r in conn.execute("SELECT * FROM query_log ORDER BY ts"):
+            d = dict(r)
+            d["sources"] = json.loads(d.get("sources") or "[]")
+            d["voice_edited"] = None if d["voice_edited"] is None else bool(d["voice_edited"])
+            d["timestamp"] = d.pop("ts")
+            rows.append(d)
+        return rows
+    finally:
+        conn.close()

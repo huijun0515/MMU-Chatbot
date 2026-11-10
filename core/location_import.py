@@ -80,3 +80,24 @@ def read_locations_xlsx(path):
     if header != COLUMNS:
         raise ValueError(f"Unexpected columns in {path}: {header}")
     return [row_to_record(r) for r in rows[1:] if r and _cell(r[0])]
+
+
+def write_locations_xlsx(records):
+    """The current location data as an Excel workbook (same 12 columns as the import file); returns bytes."""
+    import io
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(COLUMNS)
+    for r in records:
+        ws.append([r.get("code") or r.get("id", ""), r.get("building", ""), r.get("floor", ""), r.get("directions", ""),
+                   r.get("name", ""), r.get("category", ""), "; ".join(r.get("aliases") or []),
+                   r.get("opening_hours", ""), r.get("contact", ""), r.get("source", ""),
+                   r.get("verification_status", ""), r.get("notes", "")])
+    for col, width in zip("ABCDEFGHIJKL", (16, 22, 16, 40, 28, 14, 26, 18, 22, 30, 26, 40)):
+        ws.column_dimensions[col].width = width
+    ws.freeze_panes = "A2"
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

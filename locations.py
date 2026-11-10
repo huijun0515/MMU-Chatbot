@@ -17,19 +17,22 @@ Public pieces used elsewhere:
                                       retrieved context, for showing in chat (#8)
 """
 
+import io
 import os
 import re
-import json
+
+import pandas as pd
 import streamlit as st
 from langchain_core.documents import Document
 
-from core import config
+from core import config, locations_repo as repo
 from core.vector_store import get_vector_db, embed_with_retry
 from core.logging_setup import logger
-from core.location_import import read_locations_xlsx
+from core.location_import import read_locations_xlsx, write_locations_xlsx
+from core.posters import PosterError, save_poster
+from ui.layout import page_footer, page_header
 
 LOCATIONS_DIR = config.LOCATIONS_DIR
-LOCATIONS_JSON = os.path.join(LOCATIONS_DIR, "locations.json")
 
 PLACES_PAGE_LIMIT = 60
 CATEGORIES = ["Classroom", "Lecture Hall", "Tutorial Room", "Lab", "Office", "Faculty", "Facility",
@@ -39,19 +42,16 @@ CATEGORIES = ["Classroom", "Lecture Hall", "Tutorial Room", "Lab", "Office", "Fa
 # Excel file now has real versions of them, so any copy left in locations.json is dropped on import.
 LEGACY_SEED_IDS = {"library", "finance-office", "ssc"}
 
-# Verification status -> (badge label, colours, sentence the assistant is told)
+# Verification status -> (badge label, badge style, sentence the assistant is told)
 _STATUS_STYLES = {
-    "official": ("Official", "#166534", "#dcfce7",
-                 "Official MMU source."),
-    "partial": ("Official (partial)", "#166534", "#dcfce7",
-                "Official MMU source, but only partly documented."),
-    "unverified": ("Unverified", "#854d0e", "#fef9c3",
+    "official": ("Official", "ok", "Official MMU source."),
+    "partial": ("Official (partial)", "ok", "Official MMU source, but only partly documented."),
+    "unverified": ("Unverified", "warn",
                    "UNVERIFIED: taken from an older unofficial list (2014/15). "
                    "This room information may have changed or be outdated."),
-    "conflict": ("Conflict - check on site", "#991b1b", "#fee2e2",
-                 "CONFLICT: sources disagree about where this is. "
-                 "It must be checked on site."),
-    "original": ("Original file", "#1e40af", "#dbeafe",
+    "conflict": ("Conflict - check on site", "bad",
+                 "CONFLICT: sources disagree about where this is. It must be checked on site."),
+    "original": ("Original file", "info",
                  "From the project's original location list (not independently verified)."),
 }
 
@@ -73,77 +73,53 @@ def _status_key(status):
 
 def status_sentence(status):
     key = _status_key(status)
-    return _STATUS_STYLES[key][3] if key else ""
+    return _STATUS_STYLES[key][2] if key else ""
 
 
 def status_badge_html(status):
     key = _status_key(status)
     if not key:
         return ""
-    label, fg, bg, _ = _STATUS_STYLES[key]
-    return (f"<span style='display:inline-block;background:{bg};color:{fg};font-size:.7rem;"
-            f"font-weight:700;padding:2px 9px;border-radius:999px;margin:0 6px 6px 0;'>{label}</span>")
+    label, kind, _ = _STATUS_STYLES[key]
+    return f"<span class='badge badge-{kind}'>{label}</span>"
 
 
 # ──────────────────────────────────────────────────────────────
-#  Storage
+#  Storage (SQLite via core/locations_repo.py)
 # ──────────────────────────────────────────────────────────────
 def _ensure_dir():
     os.makedirs(LOCATIONS_DIR, exist_ok=True)
 
 
-def _load():
-    _ensure_dir()
-    if not os.path.exists(LOCATIONS_JSON):
-        return import_from_excel() if os.path.exists(config.LOCATIONS_XLSX) else []
-    try:
-        with open(LOCATIONS_JSON, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        logger.exception("Failed to load %s — locations list will appear empty", LOCATIONS_JSON)
-        return []
-
-
-def _save(items):
-    _ensure_dir()
-    with open(LOCATIONS_JSON, "w", encoding="utf-8") as f:
-        json.dump(items, f, indent=2, ensure_ascii=False)
-
-
 def import_from_excel(path=None):
     """
-    Upsert every row of the Excel file into locations.json (by room code /
-    id — re-importing never duplicates) and return the full list. Records
-    that are not in the file (e.g. added in the admin panel) are kept, apart
-    from the legacy placeholder seed records. Does NOT touch the vector DB;
-    call resync_all() afterwards.
+    Upsert every row of the Excel file (by room code / id — re-importing never
+    duplicates) and return the full list. Records that are not in the file
+    (e.g. added in the admin panel) are kept, apart from the legacy placeholder
+    seed records. Does NOT touch the vector DB; call resync_all() afterwards.
     """
     imported = read_locations_xlsx(path or config.LOCATIONS_XLSX)
-    existing = {}
-    if os.path.exists(LOCATIONS_JSON):
-        try:
-            with open(LOCATIONS_JSON, "r", encoding="utf-8") as f:
-                existing = {r["id"]: r for r in json.load(f)}
-        except (OSError, json.JSONDecodeError):
-            logger.exception("Could not read %s before import", LOCATIONS_JSON)
+    existing = {r["id"]: r for r in repo.all_locations()}
     for loc_id in LEGACY_SEED_IDS:
-        existing.pop(loc_id, None)
+        if loc_id in existing:
+            repo.delete(loc_id)
     for rec in imported:
         old = existing.get(rec["id"])
         if old and old.get("image"):
             rec["image"] = old["image"]  # keep a photo added in the admin panel
-        existing[rec["id"]] = rec
-    items = list(existing.values())
-    _save(items)
-    return items
+    repo.upsert_many(imported)
+    return repo.all_locations()
 
 
 def list_locations():
-    return sorted(_load(), key=lambda x: x.get("name", "").lower())
+    locations = repo.all_locations()
+    if not locations and os.path.exists(config.LOCATIONS_XLSX):  # fresh install: bootstrap from the Excel file
+        locations = import_from_excel()
+    return locations
 
 
 def get_location(loc_id):
-    return next((x for x in _load() if x.get("id") == loc_id), None)
+    return repo.get(loc_id)
 
 
 def _slug(name):
@@ -211,16 +187,11 @@ def _delete_from_vectordb(vector_db, loc_id):
 def upsert_location(rec, image_file=None):
     """Create or update one location, then sync it into the vector store."""
     _ensure_dir()
-    if image_file is not None:
-        ext = os.path.splitext(image_file.name)[1].lower() or ".png"
-        fname = f"{rec['id']}{ext}"
-        with open(os.path.join(LOCATIONS_DIR, fname), "wb") as f:
-            f.write(image_file.getbuffer())
-        rec["image"] = fname
+    if image_file is not None:  # validated, resized and re-encoded (raises PosterError for bad files)
+        rec["image"] = save_poster(image_file.getvalue(), directory=LOCATIONS_DIR, name=f"{rec['id']}.jpg",
+                                   max_width=config.LOCATION_IMAGE_MAX_WIDTH)
 
-    items = [x for x in _load() if x.get("id") != rec["id"]]
-    items.append(rec)
-    _save(items)
+    repo.upsert(rec)
 
     vdb = get_vector_db()
     _delete_from_vectordb(vdb, rec["id"])
@@ -228,8 +199,7 @@ def upsert_location(rec, image_file=None):
 
 
 def delete_location(loc_id):
-    items = _load()
-    rec = next((x for x in items if x.get("id") == loc_id), None)
+    rec = repo.get(loc_id)
     if rec and rec.get("image"):
         p = os.path.join(LOCATIONS_DIR, rec["image"])
         if os.path.exists(p):
@@ -237,7 +207,7 @@ def delete_location(loc_id):
                 os.remove(p)
             except OSError:
                 pass
-    _save([x for x in items if x.get("id") != loc_id])
+    repo.delete(loc_id)
     _delete_from_vectordb(get_vector_db(), loc_id)
 
 
@@ -248,7 +218,7 @@ def resync_all():
         vdb._collection.delete(where={"type": "location"})
     except Exception:
         pass
-    docs = [location_to_document(r) for r in _load()]
+    docs = [location_to_document(r) for r in repo.all_locations()]
     if docs:
         embed_with_retry(vdb, docs)
     return len(docs)
@@ -275,183 +245,300 @@ def location_card_from_context(context_docs):
 
 
 # ──────────────────────────────────────────────────────────────
-#  Student-facing directory page
+#  Student-facing directory page (Places)
 # ──────────────────────────────────────────────────────────────
-_DIR_CSS = """
-<style>
-.loc-meta { display:inline-block; background:#EEF3FF; color:#0033A0;
-    font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:999px; margin:6px 0 8px; }
-.loc-title { font-size:1.05rem; font-weight:700; color:#0f172a; margin-bottom:2px; }
-.loc-sub { font-size:.8rem; color:#64748b; margin-bottom:6px; }
-.loc-desc { font-size:.85rem; color:#475569; line-height:1.5; }
-.loc-empty { text-align:center; padding:60px 20px; color:#64748b;
-    border:2px dashed #cbd5e1; border-radius:16px; background:#f8fafc; }
-</style>
-"""
+STATUS_FILTERS = {
+    "All": None,
+    "Official": ("official", "partial"),
+    "Unverified (older list)": ("unverified",),
+    "Conflict - check on site": ("conflict",),
+    "From original file": ("original",),
+}
 
 
-def _render_loc_card(rec):
-    with st.container(border=True):
-        p = image_path(rec.get("image", ""))
-        if p:
-            st.image(p, use_container_width=True)
-        st.markdown(f"<span class='loc-meta'>{rec.get('category','')}</span>"
-                    + status_badge_html(rec.get("verification_status")), unsafe_allow_html=True)
-        st.markdown(f"<div class='loc-title'>{rec.get('name','')}</div>", unsafe_allow_html=True)
-        where = " · ".join(x for x in (rec.get("building"), rec.get("floor")) if x)
-        if where:
-            st.markdown(f"<div class='loc-sub'>🏢 {where}</div>", unsafe_allow_html=True)
-        if rec.get("opening_hours"):
-            st.markdown(f"<div class='loc-sub'>🕒 {rec['opening_hours']}</div>", unsafe_allow_html=True)
-        if rec.get("contact"):
-            st.markdown(f"<div class='loc-sub'>📞 {rec['contact']}</div>", unsafe_allow_html=True)
-        if rec.get("description"):
-            st.markdown(f"<div class='loc-desc'>{rec['description']}</div>", unsafe_allow_html=True)
-        if rec.get("directions") or rec.get("notes"):
-            with st.expander("🧭 Details"):
-                if rec.get("directions"):
-                    st.write(rec["directions"])
-                if rec.get("landmarks"):
-                    st.caption(f"📍 Nearby: {rec['landmarks']}")
-                if rec.get("notes"):
-                    st.caption(f"ℹ️ {rec['notes']}")
+@st.cache_data(show_spinner=False)
+def _campus_map_png(path, mtime, zoom=1.6):
+    """The official campus map PDF rendered to PNG bytes (cached per file version)."""
+    try:
+        import pymupdf
+        doc = pymupdf.open(path)
+        pix = doc[0].get_pixmap(matrix=pymupdf.Matrix(zoom, zoom))
+        return pix.tobytes("png")
+    except Exception:
+        logger.exception("Could not render the campus map %s", path)
+        return None
+
+
+def _match(rec, q):
+    q = q.lower().strip()
+    if not q:
+        return True
+    hay = " ".join([rec.get("code", ""), rec.get("name", ""), rec.get("building", ""),
+                    " ".join(rec.get("aliases", []) or []), rec.get("description", "")]).lower()
+    return q in hay or q.replace(" ", "") in hay.replace(" ", "")
+
+
+def _ask_question(rec):
+    return f"Where is {rec.get('name') or rec.get('code')}?"
+
+
+@st.dialog("Place details", width="large")
+def _place_dialog(loc_id):
+    rec = get_location(loc_id)
+    if not rec:
+        st.info("This place is no longer in the directory.")
+        return
+    p = image_path(rec.get("image", ""))
+    if p:
+        st.image(p, use_container_width=True)
+    st.markdown(f"<span class='chip'>{_esc(rec.get('category', ''))}</span>"
+                + status_badge_html(rec.get("verification_status")), unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:1.4rem;font-weight:800'>{_esc(rec.get('name', ''))}</div>", unsafe_allow_html=True)
+    if rec.get("code") and rec["code"] != rec.get("name"):
+        st.caption(f"Room code: {rec['code']}" + (f" · also: {', '.join(rec['aliases'])}" if rec.get("aliases") else ""))
+    rows = [("🏢 Building", rec.get("building")), ("🧭 Floor", rec.get("floor")),
+            ("🕒 Opening hours", rec.get("opening_hours")), ("📞 Contact", rec.get("contact"))]
+    for label, value in rows:
+        if value:
+            st.markdown(f"**{label}:** {_esc(value)}")
+    if rec.get("directions"):
+        st.markdown(f"**How to get there:** {_esc(rec['directions'])}")
+    if rec.get("notes"):
+        st.info(rec["notes"])
+    if rec.get("source"):
+        st.caption(f"Source: {rec['source']}")
+    if st.button("Ask the assistant about this place", type="primary", icon=":material/forum:",
+                 key=f"ask_{loc_id}", use_container_width=True):
+        from ui import nav
+        nav.switch("assistant", quick_query=_ask_question(rec))
+
+
+def _esc(text):
+    import html
+    return html.escape(str(text or ""))
+
+
+def _place_row(rec, key):
+    c1, c2, c3 = st.columns([5, 2.2, 1.1], vertical_alignment="center")
+    sub = " · ".join(x for x in (rec.get("category"), rec.get("floor")) if x)
+    code = rec.get("code", "")
+    with c1:
+        st.markdown(
+            f"<div class='loc-name'>{_esc(rec.get('name', ''))}"
+            + (f" <span class='loc-code'>{_esc(code)}</span>" if code and code != rec.get("name") else "")
+            + f"</div><div class='loc-sub'>{_esc(sub)}</div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown(status_badge_html(rec.get("verification_status")) or "&nbsp;", unsafe_allow_html=True)
+    with c3:
+        if st.button("Details", key=f"pl_{key}", type="tertiary"):
+            _place_dialog(rec["id"])
 
 
 def render_directory_page():
-    st.markdown(_DIR_CSS, unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align:center;color:#0033A0;'>📍 Campus Directory</h1>",
-                unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Find classrooms, offices and facilities around campus.</p>",
-                unsafe_allow_html=True)
-    st.markdown("---")
+    page_header("Places", "Find classrooms, labs, offices and facilities around the Melaka campus.",
+                eyebrow="Campus directory")
+
+    map_path = os.path.join(config.DATA_DIR, "Melaka campus map.pdf")
+    if os.path.exists(map_path):
+        with st.expander("Official campus map (Melaka)", expanded=True, icon=":material/map:"):
+            png = _campus_map_png(map_path, os.path.getmtime(map_path))
+            if png:
+                st.image(png, use_container_width=True)
+            with open(map_path, "rb") as fh:
+                st.download_button("Download map (PDF)", fh.read(), file_name="MMU Melaka campus map.pdf",
+                                   mime="application/pdf", icon=":material/download:")
 
     items = list_locations()
     if not items:
-        st.markdown("<div class='loc-empty'>🗺️ No locations added yet.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='empty'>🗺️ No locations added yet.</div>", unsafe_allow_html=True)
+        page_footer()
         return
 
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        query = st.text_input("🔎 Search", placeholder="e.g. library, finance, MNCR1001", key="places_query")
-    with c2:
-        cats = ["All"] + sorted({r.get("category", "") for r in items if r.get("category")})
-        cat = st.selectbox("Category", cats)
+    st.session_state.setdefault("places_query", "")
+    query = st.text_input("Search", key="places_query", placeholder="Room code, name, old code or alias — e.g. MNCR1001, Unix Lab, FBLR0006A",
+                          icon=":material/search:")
+    f1, f2, f3 = st.columns(3)
+    buildings = sorted({r.get("building", "") for r in items if r.get("building")})
+    categories = sorted({r.get("category", "") for r in items if r.get("category")})
+    building = f1.selectbox("Building", ["All"] + buildings)
+    category = f2.selectbox("Category", ["All"] + categories)
+    status = f3.selectbox("Verification", list(STATUS_FILTERS))
 
-    def _match(rec):
-        if cat != "All" and rec.get("category") != cat:
-            return False
-        if query:
-            hay = " ".join([
-                rec.get("name", ""), rec.get("code", ""), rec.get("building", ""),
-                " ".join(rec.get("aliases", []) or []), rec.get("description", ""),
-            ]).lower()
-            if query.lower() not in hay:
-                return False
-        return True
-
-    filtered = [r for r in items if _match(r)]
+    wanted = STATUS_FILTERS[status]
+    filtered = [
+        r for r in items
+        if _match(r, query)
+        and (building == "All" or r.get("building") == building)
+        and (category == "All" or r.get("category") == category)
+        and (wanted is None or _status_key(r.get("verification_status")) in wanted)
+    ]
     if not filtered:
-        st.info("No places match your search.")
+        st.info("No places match your search. Try the room code, the building, or a shorter word.")
+        page_footer()
         return
 
+    st.caption(f"{len(filtered)} place{'s' if len(filtered) != 1 else ''}"
+               + (f" — showing the first {PLACES_PAGE_LIMIT}; narrow the search to see the rest"
+                  if len(filtered) > PLACES_PAGE_LIMIT else ""))
     shown = filtered[:PLACES_PAGE_LIMIT]
-    if len(filtered) > len(shown):
-        st.caption(f"Showing {len(shown)} of {len(filtered)} places — search or pick a category to narrow down.")
-    cols_per_row = 3
-    for i in range(0, len(shown), cols_per_row):
-        row = shown[i:i + cols_per_row]
-        cols = st.columns(cols_per_row, gap="large")
-        for col, rec in zip(cols, row):
-            with col:
-                _render_loc_card(rec)
+    groups = {}
+    for r in shown:
+        groups.setdefault(r.get("building") or "Other", []).append(r)
+    for bname in sorted(groups):
+        st.markdown(f"#### 🏢 {_esc(bname)} <span class='muted'>· {len(groups[bname])}</span>", unsafe_allow_html=True)
+        for r in sorted(groups[bname], key=lambda x: (x.get("name") or "").lower()):
+            _place_row(r, r["id"])
+    page_footer()
 
 
 # ──────────────────────────────────────────────────────────────
 #  Admin management (called from the Admin panel)
 # ──────────────────────────────────────────────────────────────
-def render_admin_locations():
-    st.subheader("➕ Add / Update a Location")
-    st.caption("If a location with the same name exists, it will be updated.")
+STATUS_VALUES = ["Official source", "Official source (partial)", "Unverified - old unofficial list",
+                 "CONFLICT - check on site", "From your original file"]
+_EDIT_COLUMNS = ["code", "name", "category", "building", "floor", "directions", "opening_hours", "contact",
+                 "verification_status", "notes"]
 
-    with st.form("new_location", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            name = st.text_input("Name *", placeholder="e.g. BR1024")
-            category = st.selectbox("Category", CATEGORIES)
-            building = st.text_input("Building / Block", placeholder="e.g. Business Building (BR)")
-            floor = st.text_input("Floor", placeholder="e.g. Level 1")
-        with c2:
-            aliases = st.text_input("Also known as (comma-separated)",
-                                    placeholder="e.g. Business Room 1024, Lecture Hall BR1024")
-            image_file = st.file_uploader("Photo", type=["png", "jpg", "jpeg", "webp"])
-        description = st.text_area("Description", placeholder="What is this place?")
-        directions = st.text_area("How to get there", placeholder="Step-by-step from a known landmark…")
-        landmarks = st.text_input("Nearby landmarks", placeholder="e.g. opposite the cafeteria")
-        submitted = st.form_submit_button("💾 Save Location", type="primary")
 
-    if submitted:
-        if not name.strip():
-            st.error("Please enter a name.")
-        else:
-            rec = {
-                "id": _slug(name),
-                "name": name.strip(),
-                "aliases": [a.strip() for a in aliases.split(",") if a.strip()],
-                "category": category,
-                "building": building.strip(),
-                "floor": floor.strip(),
-                "description": description.strip(),
-                "directions": directions.strip(),
-                "landmarks": landmarks.strip(),
-                "image": "",
-            }
-            existing = get_location(rec["id"])
-            if existing and not image_file:
-                rec["image"] = existing.get("image", "")  # keep old photo on edit
-            with st.spinner("Saving and syncing to the assistant…"):
-                upsert_location(rec, image_file)
-            st.cache_resource.clear()
-            st.success(f"✅ Saved '{name.strip()}' and synced to the knowledge base.")
-            st.rerun()
+@st.dialog("Delete this place?")
+def _confirm_delete_location(loc_id):
+    rec = get_location(loc_id)
+    if not rec:
+        st.info("Already deleted.")
+        return
+    st.write(f"**{rec.get('name', '')}** ({rec.get('code') or rec['id']}) will be removed from the directory and the assistant.")
+    c1, c2 = st.columns(2)
+    if c1.button("Delete", type="primary", key=f"yes_loc_{loc_id}", use_container_width=True):
+        delete_location(loc_id)
+        st.cache_resource.clear()
+        st.rerun()
+    if c2.button("Cancel", key=f"no_loc_{loc_id}", use_container_width=True):
+        st.rerun()
 
-    st.divider()
 
-    if os.path.exists(config.LOCATIONS_XLSX):
-        st.caption(f"Source file: `{config.LOCATIONS_XLSX}`")
-        if st.button("📥 Re-import from Excel", help="Upsert every row of the Excel file, then re-sync the assistant"):
-            with st.spinner("Importing and re-syncing…"):
-                total = len(import_from_excel())
-                n = resync_all()
-            st.cache_resource.clear()
-            st.success(f"Imported — {total} locations on file, {n} synced to the assistant.")
-
-    top1, top2 = st.columns([3, 1])
-    with top1:
-        st.subheader("🗂️ Saved Locations")
-    with top2:
-        if st.button("🔄 Re-sync all", help="Rebuild all location entries in the assistant"):
+def _admin_import_export():
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Import from Excel**")
+        if os.path.exists(config.LOCATIONS_XLSX):
+            st.caption(f"Project file: `{config.LOCATIONS_XLSX}`")
+            if st.button("Re-import the project file", icon=":material/upload_file:"):
+                with st.spinner("Importing and re-syncing…"):
+                    total = len(import_from_excel())
+                    n = resync_all()
+                st.cache_resource.clear()
+                st.success(f"Imported — {total} locations on file, {n} synced to the assistant.")
+        up = st.file_uploader("…or upload a different Excel file (.xlsx, 12 columns)", type=["xlsx"], key="loc_xlsx_up")
+        if up is not None and st.button("Import uploaded file", key="loc_xlsx_go"):
+            if up.size > 5 * 1024 * 1024:
+                st.error("That file is larger than 5 MB.")
+            else:
+                try:
+                    records = read_locations_xlsx(io.BytesIO(up.getvalue()))
+                except Exception:
+                    logger.exception("Uploaded Excel could not be read")
+                    st.error("That file could not be read. Use the layout of the exported/project Excel file.")
+                else:
+                    repo.upsert_many(records)
+                    resync_all()
+                    st.cache_resource.clear()
+                    st.success(f"Imported {len(records)} rows.")
+    with c2:
+        st.markdown("**Download current data**")
+        st.caption("Everything currently in the directory, in the same Excel layout (edit, then re-import).")
+        st.download_button("Download as Excel", write_locations_xlsx(list_locations()),
+                           file_name="Location File (current).xlsx", icon=":material/download:",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.button("Re-sync all to the assistant", icon=":material/sync:"):
             with st.spinner("Re-syncing…"):
                 n = resync_all()
             st.cache_resource.clear()
             st.success(f"Re-synced {n} location(s).")
 
+
+def _admin_table():
     items = list_locations()
     if not items:
         st.info("No locations yet.")
         return
+    q = st.text_input("Filter the table", placeholder="code, name or building", key="loc_table_filter")
+    rows = [r for r in items if _match(r, q)]
+    st.caption(f"{len(rows)} of {len(items)} shown — double-click a cell to edit, then press **Save changes**.")
+    original = {r["id"]: {c: r.get(c, "") or "" for c in _EDIT_COLUMNS} for r in rows}
+    frame = pd.DataFrame([{"id": r["id"], **original[r["id"]]} for r in rows]).set_index("id")
+    edited = st.data_editor(
+        frame, key="loc_editor", use_container_width=True, height=420, num_rows="fixed",
+        disabled=["code"],
+        column_config={
+            "category": st.column_config.SelectboxColumn("category", options=CATEGORIES),
+            "verification_status": st.column_config.SelectboxColumn("status", options=STATUS_VALUES),
+        },
+    )
+    changed = [i for i in edited.index if edited.loc[i].fillna("").astype(str).to_dict() != original[i]]
+    if st.button(f"Save changes ({len(changed)})", type="primary", disabled=not changed, icon=":material/save:"):
+        for loc_id in changed:
+            rec = get_location(loc_id)
+            rec.update({c: str(edited.loc[loc_id, c] or "").strip() for c in _EDIT_COLUMNS})
+            upsert_location(rec)
+        st.cache_resource.clear()
+        st.success(f"Saved {len(changed)} place(s) and synced them to the assistant.")
+        st.rerun()
 
-    for rec in items:
-        with st.expander(f"📍 {rec.get('name','')}  ·  {rec.get('category','')}"):
-            st.write(f"**Building:** {rec.get('building','') or '—'}  |  **Floor:** {rec.get('floor','') or '—'}")
-            if rec.get("description"):
-                st.write(rec["description"])
-            if rec.get("directions"):
-                st.caption(f"🧭 {rec['directions']}")
-            p = image_path(rec.get("image", ""))
-            if p:
-                st.image(p, width=220)
-            if st.button("🗑️ Delete", key=f"del_loc_{rec['id']}"):
-                delete_location(rec["id"])
-                st.cache_resource.clear()
-                st.success(f"Deleted '{rec.get('name','')}'.")
-                st.rerun()
+    st.markdown("**Delete a place**")
+    d1, d2 = st.columns([4, 1], vertical_alignment="bottom")
+    pick = d1.selectbox("Place", [r["id"] for r in items], key="loc_delete_pick",
+                        format_func=lambda i: next((f"{r['name']} ({r.get('code') or i})" for r in items if r["id"] == i), i))
+    if d2.button("Delete…", key="loc_delete_go", use_container_width=True):
+        _confirm_delete_location(pick)
+
+
+def _admin_add_form():
+    st.caption("If a location with the same room code or name exists, it will be updated.")
+    with st.form("new_location", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            name = st.text_input("Name *", placeholder="e.g. FIST Unix Lab")
+            code = st.text_input("Room code", placeholder="e.g. MNCR1001")
+            category = st.selectbox("Category", CATEGORIES)
+            building = st.text_input("Building / Block", placeholder="e.g. FIST building")
+            floor = st.text_input("Floor", placeholder="e.g. Level 1")
+        with c2:
+            aliases = st.text_input("Also known as (comma-separated)", placeholder="e.g. UX01, Unix Lab")
+            image_file = st.file_uploader("Photo (PNG/JPEG/WEBP)", type=["png", "jpg", "jpeg", "webp"])
+            status = st.selectbox("Verification status", STATUS_VALUES, index=4)
+        description = st.text_area("Description", placeholder="What is this place?")
+        directions = st.text_area("How to get there", placeholder="Step-by-step from a known landmark…")
+        landmarks = st.text_input("Nearby landmarks", placeholder="e.g. opposite the cafeteria")
+        submitted = st.form_submit_button("Save location", type="primary")
+
+    if submitted:
+        if not name.strip():
+            st.error("Please enter a name.")
+            return
+        rec = {"id": _slug(code or name), "code": code.strip(), "name": name.strip(),
+               "aliases": [a.strip() for a in aliases.split(",") if a.strip()], "category": category,
+               "building": building.strip(), "floor": floor.strip(), "description": description.strip(),
+               "directions": directions.strip(), "landmarks": landmarks.strip(), "verification_status": status,
+               "image": ""}
+        existing = get_location(rec["id"])
+        if existing:
+            rec = {**existing, **{k: v for k, v in rec.items() if v not in ("", [])}}
+        try:
+            with st.spinner("Saving and syncing to the assistant…"):
+                upsert_location(rec, image_file)
+        except PosterError as exc:
+            st.error(str(exc))
+            return
+        st.cache_resource.clear()
+        st.success(f"Saved '{name.strip()}' and synced it to the assistant.")
+        st.rerun()
+
+
+def render_admin_locations():
+    sub_table, sub_io, sub_add = st.tabs(["Edit table", "Import / export", "Add a place"])
+    with sub_table:
+        _admin_table()
+    with sub_io:
+        _admin_import_export()
+    with sub_add:
+        _admin_add_form()

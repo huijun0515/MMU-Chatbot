@@ -1,6 +1,8 @@
 import streamlit as st
 import uuid
 
+from ui.layout import page_footer, page_header
+
 # ─────────────────────────────────────────────────────────────
 #  EXACT MMU GRADE TABLE — per mark, matching CalculateGrades.net
 # ─────────────────────────────────────────────────────────────
@@ -48,78 +50,25 @@ GRADE_POINTS = {g[0]: g[1] for g in MMU_GRADE_TABLE}
 
 def get_honours(cgpa, career):
     if career == "Bachelor's Degree":
-        if cgpa >= 3.67: return ("First Class Honours",        "#b45309")
-        if cgpa >= 3.33: return ("Second Class Upper Honours", "#475569")
-        if cgpa >= 2.67: return ("Second Class Lower Honours", "#92400e")
-        if cgpa >= 2.00: return ("Third Class Honours",        "#374151")
-        return ("Below Minimum CGPA (2.00)", "#dc2626")
+        if cgpa >= 3.67: return ("First Class Honours",        "var(--warn-fg)")
+        if cgpa >= 3.33: return ("Second Class Upper Honours", "var(--text-2)")
+        if cgpa >= 2.67: return ("Second Class Lower Honours", "var(--warn-fg)")
+        if cgpa >= 2.00: return ("Third Class Honours",        "var(--text-2)")
+        return ("Below Minimum CGPA (2.00)", "var(--bad-fg)")
     else:
-        if cgpa >= 3.50: return ("Distinction", "#b45309")
-        if cgpa >= 3.00: return ("Credit",      "#475569")
-        if cgpa >= 2.00: return ("Pass",        "#15803d")
-        return ("Below Minimum CGPA (2.00)", "#dc2626")
+        if cgpa >= 3.50: return ("Distinction", "var(--warn-fg)")
+        if cgpa >= 3.00: return ("Credit",      "var(--text-2)")
+        if cgpa >= 2.00: return ("Pass",        "var(--ok-fg)")
+        return ("Below Minimum CGPA (2.00)", "var(--bad-fg)")
 
 def cgpa_color(val):
-    if val >= 3.67: return "#2563eb"
-    if val >= 3.00: return "#16a34a"
-    if val >= 2.00: return "#d97706"
-    return "#dc2626"
+    if val >= 3.67: return "var(--info-fg)"
+    if val >= 3.00: return "var(--ok-fg)"
+    if val >= 2.00: return "var(--warn-fg)"
+    return "var(--bad-fg)"
 
-STYLE = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=Sora:wght@400;600;700;800&display=swap');
-
-.calc-wrap { font-family: 'DM Sans', sans-serif; }
-
-.calc-header {
-    background: linear-gradient(135deg, #001f6b 0%, #0033A0 55%, #1a56db 100%);
-    border-radius: 18px;
-    padding: 26px 30px;
-    margin-bottom: 20px;
-    color: white;
-    display: flex; align-items: center; gap: 18px;
-    box-shadow: 0 8px 32px #0033A033;
-}
-.calc-header-icon { font-size: 2.6rem; }
-.calc-header h2 { margin:0; font-family:'Sora',sans-serif; font-size:1.55rem; font-weight:800; letter-spacing:-.02em; }
-.calc-header p  { margin:5px 0 0; font-size:.88rem; opacity:.78; }
-
-.res-panel {
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1.5px solid #e2e8f0;
-    box-shadow: 0 4px 20px #0033A010;
-}
-.res-block {
-    padding: 18px 20px;
-    text-align: center;
-    border-bottom: 1px solid #e2e8f0;
-}
-.res-block:last-child { border-bottom: none; }
-.res-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #94a3b8; font-weight:600; margin-bottom: 4px; }
-.res-value { font-family:'Sora',sans-serif; font-size: 2.6rem; font-weight: 800; line-height:1; }
-.res-small { font-size: 1.6rem !important; }
-
-.badge {
-    border-radius: 10px; padding: 12px 16px;
-    text-align: center; font-family:'Sora',sans-serif;
-    font-weight: 700; font-size: .92rem; margin-top: 8px;
-    letter-spacing: -.01em;
-}
-.deans-badge {
-    background: linear-gradient(135deg, #fef08a, #fde047);
-    color: #713f12; border-radius: 10px;
-    padding: 10px 14px; text-align:center;
-    font-family:'Sora',sans-serif; font-weight:700;
-    font-size:.85rem; margin-top:8px;
-    box-shadow: 0 2px 8px #fde04740;
-}
-</style>
-"""
 
 def render_cgpa_calculator():
-    st.markdown(STYLE, unsafe_allow_html=True)
-    st.markdown('<div class="calc-wrap">', unsafe_allow_html=True)
 
     # Initialize variables in session state to None so boxes are completely empty
     if "prior_cgpa_val" not in st.session_state:
@@ -132,16 +81,8 @@ def render_cgpa_calculator():
             {"id": str(uuid.uuid4()), "name": "", "credits": 3, "grade": GRADE_LABELS[0]},
         ]
 
-    # ── Header ─────────────────────────────────────────────────
-    st.markdown("""
-    <div class="calc-header">
-        <div class="calc-header-icon">📊</div>
-        <div>
-            <h2>MMU CGPA Calculator</h2>
-            <p>Multimedia University &nbsp;&nbsp; </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    page_header("CGPA Calculator", "Plan your semester with the official MMU grading scheme.",
+                eyebrow="Academic tools")
 
     # ── Settings ───────────────────────────────────────────────
     c1, c2 = st.columns(2)
@@ -256,19 +197,19 @@ def render_cgpa_calculator():
 
         st.markdown(f"""
         <div class="res-panel">
-            <div class="res-block" style="background:#f8faff;">
+            <div class="res-block">
                 <div class="res-label">Semester Credits</div>
-                <div class="res-value res-small" style="color:#1e293b;">{sem_ch}</div>
+                <div class="res-value res-small">{sem_ch}</div>
             </div>
-            <div class="res-block" style="background:white;">
+            <div class="res-block">
                 <div class="res-label">GPA</div>
                 <div class="res-value" style="color:{gpa_col};">{gpa:.2f}</div>
             </div>
-            <div class="res-block" style="background:#f8faff;">
+            <div class="res-block">
                 <div class="res-label">Total Credits</div>
-                <div class="res-value res-small" style="color:#1e293b;">{cum_ch}</div>
+                <div class="res-value res-small">{cum_ch}</div>
             </div>
-            <div class="res-block" style="background:white;">
+            <div class="res-block">
                 <div class="res-label">CGPA</div>
                 <div class="res-value" style="color:{cgpa_col};">{cgpa:.2f}</div>
             </div>
@@ -280,7 +221,7 @@ def render_cgpa_calculator():
 
         if cum_ch > 0:
             label, col = get_honours(cgpa, career)
-            st.markdown(f"""<div class="badge" style="background:{col}18; border:2px solid {col}; color:{col}; margin-top:10px;">🎓 {label}</div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="honours" style="background:color-mix(in srgb, {col} 12%, transparent); border:2px solid {col}; color:{col};">🎓 {label}</div>""", unsafe_allow_html=True)
 
         if gpa < 2.0 and sem_ch > 0:
             st.warning("⚠️ GPA below 2.00 — Probation risk")
@@ -292,23 +233,23 @@ def render_cgpa_calculator():
     # ── Grade Reference Table ──────────────────────────────────
     with st.expander("📖 MMU Grading Scheme"):
         rows = ""
-        for i, (label, pts) in enumerate(MMU_GRADE_TABLE):
-            bg = "#f1f5ff" if i % 2 == 0 else "white"
+        for label, pts in MMU_GRADE_TABLE:
             mark = label.split("(")[-1].replace(")", "").strip() if "(" in label else ""
             grade_clean = label.split("(")[0].strip()
-            rows += f'<tr style="background:{bg};"><td style="padding:7px 20px;text-align:center;color:#64748b;">{mark}</td><td style="padding:7px 20px;text-align:center;font-weight:700;color:#0033A0;font-family:Sora,sans-serif;">{grade_clean}</td><td style="padding:7px 20px;text-align:center;font-weight:700;color:#1e293b;">{pts:.2f}</td></tr>'
-
+            rows += f"<tr><td>{mark}</td><td><b>{grade_clean}</b></td><td>{pts:.2f}</td></tr>"
         st.markdown(f"""
-        <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;border-radius:12px;overflow:hidden;">
-        <thead><tr style="background:#0033A0;color:white;"><th style="padding:12px 20px;text-align:center;">Marks</th><th style="padding:12px 20px;text-align:center;">Grade</th><th style="padding:12px 20px;text-align:center;">Quality Points</th></tr></thead>
+        <table class="grade-table">
+        <thead><tr><th>Marks</th><th>Grade</th><th>Grade Point</th></tr></thead>
         <tbody>{rows}</tbody>
         </table>
         """, unsafe_allow_html=True)
-        
+        st.caption("Source: MMU Academic Handbook 2025, §8.1 Scheme of Marks and Grades (PDF page 49) and "
+                   "§12.2 Classification of Honours (PDF page 71).")
+
         st.markdown("---")
         col_b, col_d = st.columns(2)
         with col_b:
             st.markdown("🎓 Bachelor Honours \n| CGPA | Class |\n|------|-------|\n| 3.67–4.00 | First Class |\n| 3.33–3.66 | Second Upper |\n| 2.67–3.32 | Second Lower |\n| 2.00–2.66 | Third Class |")
         with col_d:
             st.markdown("🎓 Diploma Honours \n| CGPA | Class |\n|------|-------|\n| 3.50–4.00 | Distinction |\n| 3.00–3.49 | Credit |\n| 2.00–2.99 | Pass |")
-    st.markdown("</div>", unsafe_allow_html=True)
+    page_footer()

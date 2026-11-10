@@ -10,37 +10,14 @@ Past events are never deleted: "past" is computed from end < now.
 import datetime as dt
 import json
 import os
-import sqlite3
 import uuid
 from zoneinfo import ZoneInfo
 
-from core import config
+from core import config, db as appdb
 from core.logging_setup import logger
 
 FIELDS = ["title", "category", "start_at", "end_at", "all_day", "venue_location_id", "venue_text",
           "description", "organiser", "registration_url", "poster", "status", "pinned"]
-
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS events (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    category TEXT NOT NULL DEFAULT 'Other',
-    start_at TEXT NOT NULL,
-    end_at TEXT NOT NULL,
-    all_day INTEGER NOT NULL DEFAULT 0,
-    venue_location_id TEXT NOT NULL DEFAULT '',
-    venue_text TEXT NOT NULL DEFAULT '',
-    description TEXT NOT NULL DEFAULT '',
-    organiser TEXT NOT NULL DEFAULT '',
-    registration_url TEXT NOT NULL DEFAULT '',
-    poster TEXT NOT NULL DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'draft',
-    pinned INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-"""
 
 _now_override = None
 
@@ -63,18 +40,15 @@ def parse(value):
 
 
 def _connect():
-    os.makedirs(os.path.dirname(config.APP_DB_PATH) or ".", exist_ok=True)
-    conn = sqlite3.connect(config.APP_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return appdb.connect()
 
 
 def init_db():
     """Create the schema and, once, import the old announcements.json."""
+    appdb.ensure_ready()
     conn = _connect()
     try:
         with conn:
-            conn.executescript(_SCHEMA)
             done = conn.execute("SELECT value FROM meta WHERE key='legacy_announcements_imported'").fetchone()
             if done:
                 return

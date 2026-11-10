@@ -21,6 +21,13 @@ sys.path.insert(0, os.getcwd())
 
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
+
+def open_page(name):
+    os.environ["SMOKE_PAGE"] = name
+    return AppTest.from_file("eval/_page_harness.py", default_timeout=60)
+
+
+
 from core import config, events_db as db  # noqa: E402
 
 NOW = dt.datetime(2026, 11, 10, 10, 0)
@@ -84,8 +91,7 @@ ics = db.ics(db.get_event(talk))
 check("ics has UTC start (14:00 MYT = 06:00Z) and title", "DTSTART:20261112T060000Z" in ics and "SUMMARY:FIST Industry Talk" in ics)
 
 # ── student page ─────────────────────────────────────────────────────────
-app = AppTest.from_file("app.py", default_timeout=60)
-app.session_state["current_page"] = "Events"
+app = open_page("events")
 app.run()
 text = page_text(app)
 check("student page renders without exceptions", not app.exception, str(app.exception))
@@ -105,26 +111,24 @@ check("'This week' keeps only this week's events", "Upcoming · 1 event" in page
 
 # ── events expire by themselves (fake the date) ──────────────────────────
 db.set_now(NOW + dt.timedelta(days=3))  # Fri 13 Nov: the talk (12 Nov) has ended
-app = AppTest.from_file("app.py", default_timeout=60)
-app.session_state["current_page"] = "Events"
+app = open_page("events")
 app.run()
 text = page_text(app)
 check("after the talk ends it moves to Past events", "Past events · 2 events" in text, text[text.find("Past events"):][:60])
 check("hero moves on (talk no longer hero)", "Next up" in text and "FIST Industry Talk" not in text.split("Past events")[0].split("Upcoming")[0])
 db.set_now(NOW + dt.timedelta(days=60))
-app = AppTest.from_file("app.py", default_timeout=60)
-app.session_state["current_page"] = "Events"
+app = open_page("events")
 app.run()
 text = page_text(app)
 check("with nothing upcoming: friendly empty state, no hero", "No upcoming events" in text and "Next up" not in text)
 db.set_now(NOW)
 
 # ── admin ────────────────────────────────────────────────────────────────
-admin = AppTest.from_file("app.py", default_timeout=60)
-admin.session_state["current_page"] = "Admin"
+admin = open_page("admin")
 admin.run()
-check("admin logged OUT shows the password gate, not the events tab", any("Admin Login" in m.value for m in admin.markdown) and not any("New event" in b.label for b in admin.button))
+check("admin logged OUT shows the password gate, not the events tab", any(b.label == "Log in" for b in admin.button) and not any("New event" in b.label for b in admin.button))
 admin.session_state["admin_authed"] = True
+admin.session_state["admin_last_seen"] = 10**12
 admin.run()
 check("admin logged IN shows the events list", any("New event" in b.label for b in admin.button) and not admin.exception, str(admin.exception))
 next(b for b in admin.button if "New event" in b.label).click().run()

@@ -7,6 +7,7 @@ import uuid
 from PIL import Image, ImageOps
 
 from core import config
+from core.logging_setup import logger
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
 
@@ -15,8 +16,8 @@ class PosterError(ValueError):
     """Raised with a message that is safe to show to the admin."""
 
 
-def save_poster(data):
-    """Validate image bytes, downscale to POSTER_MAX_WIDTH, store as JPEG.
+def save_poster(data, directory=None, name=None, max_width=None):
+    """Validate image bytes, downscale to max_width (default POSTER_MAX_WIDTH), store as JPEG.
     Returns the stored file name."""
     if len(data) > config.POSTER_MAX_BYTES:
         raise PosterError(f"Image is larger than {config.POSTER_MAX_BYTES // (1024 * 1024)} MB.")
@@ -38,12 +39,14 @@ def save_poster(data):
         img = background
     else:
         img = img.convert("RGB")
-    if img.width > config.POSTER_MAX_WIDTH:
-        img = img.resize((config.POSTER_MAX_WIDTH, round(img.height * config.POSTER_MAX_WIDTH / img.width)), Image.LANCZOS)
+    width = max_width or config.POSTER_MAX_WIDTH
+    if img.width > width:
+        img = img.resize((width, round(img.height * width / img.width)), Image.LANCZOS)
 
-    os.makedirs(config.ANNOUNCE_DIR, exist_ok=True)
-    name = f"poster_{uuid.uuid4().hex[:10]}.jpg"
-    img.save(os.path.join(config.ANNOUNCE_DIR, name), "JPEG", quality=85, optimize=True)
+    directory = directory or config.ANNOUNCE_DIR
+    os.makedirs(directory, exist_ok=True)
+    name = name or f"poster_{uuid.uuid4().hex[:10]}.jpg"
+    img.save(os.path.join(directory, name), "JPEG", quality=85, optimize=True)
     return name
 
 
@@ -61,4 +64,4 @@ def delete_poster(name):
         try:
             os.remove(path)
         except OSError:
-            pass
+            logger.exception("Could not delete poster %s", path)

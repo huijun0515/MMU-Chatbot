@@ -1,42 +1,46 @@
 # MMU Intelligent Campus Assistant
 
-A Streamlit RAG chatbot for Multimedia University. It answers academic
-questions grounded in official MMU handbook PDFs, and campus-navigation
-questions from a structured location dataset — one hybrid knowledge base,
-one retriever, source-traceable answers.
+A Streamlit RAG chatbot for Multimedia University (Melaka campus). It answers
+academic questions grounded in official MMU documents, campus-navigation
+questions from a structured, verification-aware location directory, and event
+questions from a live calendar — in English, Bahasa Melayu and Chinese — and
+always shows where an answer came from.
 
-Stack: Streamlit · LangChain · ChromaDB · local sentence-transformers
-embeddings (default) · Google Gemini (answer generation).
+Stack: Streamlit 1.56 · LangChain · ChromaDB · local sentence-transformers
+embeddings · Google Gemini (answers, translation of search queries, transcription).
+
+## Pages
+
+| URL | Page | Notes |
+|---|---|---|
+| `/assistant` (also `/`) | Assistant | streaming answers, citations that open the exact PDF page, location cards, 👍/👎, voice input |
+| `/places` | Places | search by code/name/alias/old code, filters, campus map, per-place dialog |
+| `/sources` | Sources | search or deep-link (`?doc=&page=`) to a page with the passage highlighted |
+| `/events` | Events | hero, filters, cards, past events collapsed |
+| `/calculator` | CGPA calculator | MMU grading scheme (Handbook §8.1) |
+| `/admin` | Admin console | hidden from the menu, password-gated (`?admin=1` redirects here) |
+| `/privacy` | Privacy notice | linked from every footer |
 
 ## Project structure
 
 ```
-core/                RAG engine — no Streamlit UI code
-  config.py             all tunables: models, paths, chunk size, k, temperature, embedding backend
-  vector_store.py        embeddings + shared Chroma handle (local embeddings by default)
-  rag_chain.py            history-aware retrieval + generation (LangChain's official chain helpers)
-  intent.py                chit-chat vs knowledge check (decides whether to retrieve at all)
-  location_lookup.py      exact/alias/room-code short-circuit for the location dataset
-  query_log.py             JSONL logging of every question/answer/sources, + 👍/👎 feedback
-  logging_setup.py          one logger used instead of silent except/pass
-
-ui/styles.py          shared CSS
-views/assistant_view.py   the chat page
-
-app.py                thin router: page config, CSS, sidebar, ?admin=1 gate, dispatch
-admin.py               password-gated admin console (PDF upload, locations, announcements)
-locations.py           structured location dataset + directory page
-announcements.py       campus events/announcements feature
-cgpa_calculator.py     CGPA calculator (standalone, no RAG dependency)
-source_explorer.py     search + page-level PDF source verification
-
-build_database.py     FULL rebuild of chroma_db from ./data + locations.json (wipes and rebuilds)
-evaluate.py            retrieval/answer evaluation harness (Objective 3)
-eval/goldset.json       hand-written question / expected-source pairs
+app.py, app_pages.py       entry point (st.navigation) and the page registry
+views/                     assistant page, privacy page
+events.py, locations.py, source_explorer.py, cgpa_calculator.py, admin.py   feature pages
+ui/                        styles.py (theme CSS variables), layout.py (header/footer/error boundary),
+                           nav.py (page links), widgets.py (copy / read-aloud buttons)
+core/                      no page code
+  config.py                  every tunable and every storage path
+  db.py                      the SQLite schema + one-time JSON migrations
+  locations_repo.py, events_db.py, query_log.py     repositories on that database
+  vector_store.py, retrieval.py, rag_chain.py       embeddings, hybrid retrieval, streaming chain
+  language.py                language detection, English search query for BM/ZH questions, query expansion
+  intent.py, location_lookup.py, event_context.py   chit-chat gate, exact place lookup, live events
+  voice.py, rate_limit.py, admin_auth.py, insights.py, posters.py, location_import.py
+build_database.py          FULL rebuild of the vector index (PDFs + locations)
+evaluate.py, eval/         gold sets, results, and the test scripts below
+.streamlit/config.toml     MMU theme (light + dark) — colours are defined here and in ui/styles.py only
 ```
-
-The admin console has no button anywhere in the student-facing UI. It only
-opens via a URL flag (`?admin=1`) and is still password-gated.
 
 ## Setup
 
@@ -44,153 +48,111 @@ opens via a URL flag (`?admin=1`) and is still password-gated.
 python -m venv fyp_env
 # Windows: fyp_env\Scripts\activate      macOS/Linux: source fyp_env/bin/activate
 pip install -r requirements.txt
-```
-
-Create `.streamlit/secrets.toml` (never committed — see `.gitignore`):
-
-```toml
-GEMINI_API_KEY = "your-gemini-api-key"
-ADMIN_PASSWORD = "choose-a-password"
-```
-
-`GEMINI_API_KEY` is required for answer generation (Gemini is always used for
-that, regardless of embedding backend). It is **not** required to build or
-query the vector database with the default local embedding backend.
-
-## Build the knowledge base
-
-```bash
-python build_database.py
-```
-
-This is a **full rebuild**: it wipes `./chroma_db` and re-embeds every PDF in
-`./data` plus every record in `./locations/locations.json`. With the default
-local embedding backend (`sentence-transformers/all-MiniLM-L6-v2`) this needs
-no API key, no network calls beyond the one-time model download, and finishes
-in well under a minute for this project's dataset.
-
-Run it again whenever you change `EMBEDDING_BACKEND` or
-`LOCAL_EMBEDDING_MODEL` in `core/config.py` — a different embedding model
-produces vectors of a different dimensionality, which makes the existing
-`chroma_db` unreadable.
-
-Day-to-day PDF additions do **not** need this script — use the admin panel
-(below), which appends incrementally without ever rebuilding.
-
-## Run the app
-
-```bash
+python build_database.py        # builds the vector index (no API key needed)
 streamlit run app.py
 ```
 
-Open `http://localhost:8501`. For the admin console:
-`http://localhost:8501/?admin=1`, then log in with `ADMIN_PASSWORD`.
+`.streamlit/secrets.toml` (never committed):
 
-## Run the evaluation harness
-
-```bash
-python evaluate.py
+```toml
+GEMINI_API_KEY = "your-gemini-api-key"      # answers, translation, voice transcription
+ADMIN_PASSWORD = "a-long-random-password"
 ```
 
-For each question in `eval/goldset.json`, compares the live hybrid
-retriever's hit-rate against a BM25 keyword-search baseline built from the
-same indexed chunks, and (if `GEMINI_API_KEY` is set) a keyword-based
-answer-relevancy check on the generated answer. Edit `eval/goldset.json` to
-add more questions as the knowledge base grows — `expected_source` must match
-a `source_file` value exactly (a PDF's basename, or `"Campus Directory"` for
-locations).
+### Environment variables
 
-## Configuration
-
-Everything tunable lives in `core/config.py`: model names, chunk size/overlap,
-retriever `k`, generation temperature, paths, and the embedding backend
-switch (`EMBEDDING_BACKEND=local` default, or `gemini`). Override via
-environment variables without editing the file, e.g.:
-
-```bash
-EMBEDDING_BACKEND=gemini python build_database.py
-```
-
-If a meaningful share of the indexed content is in Bahasa Melayu, switch
-`LOCAL_EMBEDDING_MODEL` to
-`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (larger, slower,
-multilingual) and rebuild.
-
-## When are "View Sources" shown?
-
-Only when an answer is genuinely grounded in retrieved context. Two gates in
-`core/config.py` (both can be toggled off):
-
-1. **Intent** (`INTENT_GATE_ENABLED`, `CHITCHAT_PATTERNS`): greetings, thanks,
-   goodbyes and "who are you" are matched against the *whole* message, skip
-   retrieval entirely, are answered directly by the LLM, and show no sources.
-   `"hi, where is the library?"` is still a knowledge question.
-2. **Grounding** (`GROUNDING_GATE_ENABLED`, `MIN_RELEVANCE_SCORE`,
-   `NO_ANSWER_MARKER`): retrieved chunks scoring below the threshold are
-   discarded, and if the model itself answers "I couldn't find that..." no
-   sources are listed. The threshold is calibrated to `all-MiniLM-L6-v2`
-   - re-measure it if you change `LOCAL_EMBEDDING_MODEL`.
-
-Every logged query records its `intent` (`chitchat` / `knowledge`).
-
-## Retrieval and evaluation
-
-Retrieval is hybrid (`core/retrieval.py`): vector search + BM25, merged by
-round-robin, with a relevance gate. `python evaluate.py --validate` proves the
-gold sets against the index; `eval/goldset.json` (25 answerable + 5 no-answer)
-was used for tuning and `eval/goldset_heldout.json` (11 + 3) was not.
-Metric: *evidence-hit* = a retrieved chunk of the expected file contains the
-evidence text (file-level "source-hit" overstates quality). Results are in
-`eval/results/`; compare configs with `--mode`, `--fusion`, `--k`.
-
-| config (dev n=25 / held-out n=11) | evidence-hit | sources/answer |
+| Variable | Default | Purpose |
 |---|---|---|
-| vector k=3 (old default) | 64% / 91% | 1.60 |
-| vector k=5 | 76% / 91% | 1.88 |
-| hybrid RRF k=3 | 84% / 100% | 1.68 |
-| **hybrid interleave k=5 (default)** | **88% / 100%** | 2.04 |
+| `MMU_STORAGE_DIR` | `.` | one root for everything below — point it at a persistent volume |
+| `DATA_DIR` | `<root>/data` | source PDFs, `Location File.xlsx` |
+| `CHROMA_DIR` | `<root>/chroma_db` | vector index |
+| `APP_DB_PATH` | `<root>/data/app.db` | SQLite: events, locations, query log |
+| `LOCATION_IMAGES_DIR`, `EVENT_POSTERS_DIR` | `<root>/locations`, `<root>/announcements` | uploaded images |
+| `EMBEDDING_BACKEND` | `local` | `local` or `gemini` |
+| `GEMINI_API_KEY`, `ADMIN_PASSWORD` | — | also accepted as environment variables |
 
-Known misses: q01 (the data has the graduation *rule* but no credit total),
-q18 ("July" vs "JUL" in the calendar), q24 (paraphrased location question).
+## Data and storage
 
-## Campus locations
+One SQLite file (`data/app.db`) holds events, locations and the query log. On
+first start the old files are imported once and then ignored:
+`announcements/announcements.json`, `locations/locations.json`,
+`data/query_log.jsonl`. `data/Location File.xlsx` remains the editable source of
+truth for places: `python build_database.py` or **Admin → Locations → Import /
+export** upserts it by room code (never duplicates; empty cells stay empty) and
+the admin can also edit places inline and download the current data as Excel.
 
-`data/Location File.xlsx` is the source of truth for places (code, name, category,
-building, floor, directions, aliases, opening hours, contact, source, verification
-status, notes). `python build_database.py` imports it; in the admin panel,
-**Re-import from Excel** upserts by room code (never duplicates) and re-syncs the
-assistant. Empty cells stay empty. Answers and cards carry the verification status:
-unverified rooms are flagged as possibly outdated, conflicting entries show both
-versions and ask the user to check on site. Lookup matches whole tokens only.
+Rebuild the vector index after changing the embedding model:
+`python build_database.py` (the admin PDF upload is incremental and never rebuilds).
 
-## Events
+## How answers are produced
 
-Events live in SQLite (`data/app.db`, created on first run; the old
-`announcements.json` is migrated automatically). Admin: create / edit /
-duplicate / pin / delete, draft vs published, posters resized to 1200 px. Students
-see a hero for the next event, filters, a card grid and a collapsed "Past
-events" section — events move there by themselves after they end. The assistant
-answers event questions from the live calendar (never from the vector store),
-with today's date in the passage; past and draft events are never offered.
-Checks: `python eval/check_events.py` and `python evaluate.py --events [--with-llm]`.
+* **Intent gate** — greetings/thanks skip retrieval and show no sources.
+* **Hybrid retrieval** — vector + BM25 merged round-robin, a relevance gate, exact
+  room-code/alias lookup, and the live events calendar for event questions.
+  Non-English questions are translated into an English *search query*; the answer
+  is written in the user's language. A small query-expansion table bridges
+  student/document wording (`subject`→`course`, `July`→`Jul`, `withdraw`→`withdrawal`).
+* **Grounding gate** — sources are shown only if the answer rests on retrieved
+  passages. Passages are treated as data: the system prompt tells the model to
+  ignore any instruction inside them.
+* **Place status** — unverified rooms are flagged as possibly outdated; conflicting
+  entries show both versions and ask the user to check on site.
 
-## Voice input
+## Evaluation
 
-On the Assistant page, **Ask by voice** records up to 30 s (English, Bahasa
-Melayu, 中文), transcribes it with Gemini, and puts the text in an editable box —
-it is never sent automatically. Voice, typed and quick-query questions share the
-chat rate limit (`CHAT_RATE_LIMIT_*` in `core/config.py`), and each query-log row
-records `input_mode` (`text` / `quick` / `voice`) and whether the transcript was
-edited. **The microphone only works on HTTPS or localhost**, and the browser must
-be allowed to use it. "Read aloud" uses the browser's speech synthesis (free, no
-quota); switch it off with `TTS_ENABLED = False`.
+```bash
+python evaluate.py --validate                       # prove the gold set against the index
+python evaluate.py [--with-llm] [--tag name]        # retrieval (and answer) metrics
+python evaluate.py --goldset eval/goldset_heldout.json [--with-llm]
+python evaluate.py --events --with-llm              # live-calendar questions on a frozen date
+python eval/smoke_pages.py                          # every page renders, logged out/in
+python eval/check_product.py [--llm]                # auth, privacy, rate limit, migration, insights, pages
+python eval/check_events.py                         # events feature
+```
 
-## Notes
+*Evidence-hit* means a retrieved chunk of the expected file contains the evidence
+text (file-level hits overstate quality). `eval/goldset.json` is the tuning set
+(35 answerable incl. 6 Malay/Chinese and the 4 welcome-page suggestions, + 5
+no-answer); `eval/goldset_heldout.json` (11 + 3) was never tuned on. Results are
+saved in `eval/results/`.
 
-- `chroma_db/` and `data/query_log.jsonl` are generated, not versioned — see
-  `.gitignore`. Rebuild the DB with `build_database.py` after cloning.
-- `data/` holds the source PDFs (versioned) plus the generated query log
-  (not versioned).
-- The admin panel's PDF upload is **incremental**: `add_documents()` only,
-  duplicate-checked by `metadata["source_file"]`, with a Replace option and a
-  per-file delete button. It never rebuilds `chroma_db`.
+## Privacy
+
+Question text, answer, sources, time, input mode and 👍/👎 are logged; no names or
+student IDs. Student-ID-like numbers and phone numbers are masked before storage;
+rows older than `QUERY_LOG_RETENTION_DAYS` (180) are deleted automatically. The
+policy shown to users is `views/privacy_view.py`. Voice recordings are sent to
+Gemini for transcription and not kept.
+
+## Security and cost controls
+
+* Admin: constant-time password check, 5-minute lockout after 5 failures per
+  client, 30-minute idle logout, logout button, confirm dialogs before deletes,
+  uploads validated (PDF magic bytes and size; images re-encoded with Pillow),
+  admin-entered text HTML-escaped.
+* Per-session chat limit: 20 questions / 10 minutes (`CHAT_RATE_LIMIT_*`); typed,
+  suggested and voice-transcription requests all count. Input is capped at 500 characters.
+* The microphone only works on **HTTPS or localhost**.
+
+## Deployment
+
+* **Streamlit Community Cloud**: quick to publish, but the disk is **ephemeral** —
+  `app.db` (events, locations edits, query log), uploaded PDFs and posters, and the
+  vector index are lost on every restart/redeploy. Use it for a demo only; the repo
+  (PDFs, `Location File.xlsx`, `build_database.py`) lets you recreate the index, but
+  admin-entered data would vanish.
+* **A host with a persistent volume** (VM, container platform, or any PaaS volume):
+  mount the volume, set `MMU_STORAGE_DIR` to it, put secrets in the environment or
+  `.streamlit/secrets.toml`, run `python build_database.py` once, then
+  `streamlit run app.py --server.port 8501` behind HTTPS (needed for the microphone).
+  Back up `app.db` and `data/`.
+* Single-process note: the rate limit and admin lockout are per process/session
+  (in memory); a multi-instance deployment would need a shared store.
+
+## Future work
+
+Move from Streamlit to a **React front end + FastAPI back end**: a proper
+session/auth model (per-user rate limiting and admin roles instead of in-process
+state), streaming over SSE/WebSocket, installable PWA/offline shell, CI-run
+evaluation, and a managed vector store / Postgres so several instances can share
+data. The `core/` package is already UI-free to make that move straightforward.

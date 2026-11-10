@@ -1,0 +1,355 @@
+{
+  "tag": "phase2_heldout",
+  "k": 5,
+  "retrieval": "hybrid/interleave",
+  "embedding": "local",
+  "min_relevance_score": 0.15,
+  "metrics": {
+    "rag_source_hit": 11,
+    "rag_evidence_hit": 11,
+    "bm25_source_hit": 11,
+    "bm25_evidence_hit": 10,
+    "avg_sources_shown": 1.91,
+    "only_expected_source": 4,
+    "n_answerable": 11,
+    "no_answer_retrieval_clean": 0,
+    "n_no_answer": 3,
+    "answer_relevant": 11,
+    "no_answer_correct_e2e": 3
+  },
+  "per_question": [
+    {
+      "id": "h01",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "What is the maximum credit that can be transferred from a Certificate to a Diploma?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h02",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "What grade is recorded if I withdraw from a course?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h03",
+      "kind": "answerable",
+      "category": "policy",
+      "question": "If I repeat a course, which of my grades counts towards my CGPA?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2026 Scholarship.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h04",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What is the minimum academic load for a student following the programme structure in a long trimester?",
+      "expected_source": "2025 Academic Handbook.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h05",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "When is the closing date to apply for the JAWHAR scholarship?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h06",
+      "kind": "answerable",
+      "category": "scholarship",
+      "question": "What discount does MMU give to alumni?",
+      "expected_source": "2026 Scholarship.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 MMU PostGraduate June.pdf",
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h07",
+      "kind": "answerable",
+      "category": "table",
+      "question": "What time is the main registration on Welcoming Day?",
+      "expected_source": "2926 March Student Guide.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h08",
+      "kind": "answerable",
+      "category": "people",
+      "question": "How many international students study at MMU?",
+      "expected_source": "2025 MMU PostGraduate June.pdf",
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf",
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": false
+    },
+    {
+      "id": "h09",
+      "kind": "answerable",
+      "category": "facility",
+      "question": "Where is the CIMB ATM located?",
+      "expected_source": "MMU Melaka Facilities open hour.pdf",
+      "rag_n_chunks": 3,
+      "rag_sources": [
+        "Campus Directory",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h10",
+      "kind": "answerable",
+      "category": "calendar",
+      "question": "When is Deepavali in 2026?",
+      "expected_source": "2026 Academic Calendar.pdf",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "2026 Academic Calendar.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "h11",
+      "kind": "answerable",
+      "category": "people",
+      "question": "What are Alvin Lim's research interests?",
+      "expected_source": "Lecturer Cv Info.pdf",
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "Lecturer Cv Info.pdf"
+      ],
+      "rag_src": true,
+      "rag_ev": true,
+      "bm25_src": true,
+      "bm25_ev": true
+    },
+    {
+      "id": "hn1",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What are the opening hours of the campus bookstore?",
+      "expected_source": null,
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 MMU PostGraduate June.pdf",
+        "2926 March Student Guide.pdf",
+        "Campus Directory",
+        "MMU Melaka Facilities open hour.pdf"
+      ]
+    },
+    {
+      "id": "hn2",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "Is there a shuttle service between the Melaka and Cyberjaya campuses?",
+      "expected_source": null,
+      "rag_n_chunks": 5,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "2025 MMU PostGraduate June.pdf",
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ]
+    },
+    {
+      "id": "hn3",
+      "kind": "no_answer",
+      "category": "out_of_data",
+      "question": "What is the dress code for lab sessions?",
+      "expected_source": null,
+      "rag_n_chunks": 2,
+      "rag_sources": [
+        "2025 Academic Handbook.pdf",
+        "Campus Directory"
+      ]
+    }
+  ],
+  "llm": {
+    "h01": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "The maximum transferable credit from a Certificate (MQF Level 3) to a Diploma (MQF Level 4) is 30% of the total Diploma programme’s credit.",
+      "relevant": true
+    },
+    "h02": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "If you withdraw from a course, an automatic grade of “W” will be recorded.",
+      "relevant": true
+    },
+    "h03": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf",
+        "2026 Scholarship.pdf"
+      ],
+      "answer": "If you repeat a course, only the BEST grade shall be taken into account for the computation of your Cumulative Grade Point Average (CGPA).",
+      "relevant": true
+    },
+    "h04": {
+      "grounded": true,
+      "sources": [
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "For a student following the programme structure, the minimum academic load in a 14-lecture-week trimester (long trimester) is 12 CH.",
+      "relevant": true
+    },
+    "h05": {
+      "grounded": true,
+      "sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "answer": "The closing date for the JAWHAR Scholarship application is one month before the registration date of each intake.",
+      "relevant": true
+    },
+    "h06": {
+      "grounded": true,
+      "sources": [
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf",
+        "2025 MMU PostGraduate June.pdf"
+      ],
+      "answer": "MMU gives the following discounts to alumni:\n\n*   **10% discount of programme fees** for MMU Diploma Alumni or their children pursuing studies at MMU's Bachelor's Degree Programmes. (Source: 2026 Scholarship.pdf, page 3)\n*   **20% discount of programme fee** for postgraduate students. (Source: 2025 MMU PostGraduate June.pdf, page 13)",
+      "relevant": true
+    },
+    "h07": {
+      "grounded": true,
+      "sources": [
+        "2926 March Student Guide.pdf",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "answer": "The main registration on Welcoming Day is from 08.45 AM – 11.00 AM.",
+      "relevant": true
+    },
+    "h08": {
+      "grounded": true,
+      "sources": [
+        "2025 MMU PostGraduate June.pdf",
+        "2026 Scholarship.pdf",
+        "2926 March Student Guide.pdf",
+        "2025 Academic Handbook.pdf"
+      ],
+      "answer": "Approximately 1,600 international students from over 70 countries study at MMU.\n[Source: 2025 MMU PostGraduate June.pdf, page 4]",
+      "relevant": true
+    },
+    "h09": {
+      "grounded": true,
+      "sources": [
+        "Campus Directory",
+        "MMU Melaka Facilities open hour.pdf"
+      ],
+      "answer": "The CIMB ATM is located in the Student Plaza Complex.",
+      "relevant": true
+    },
+    "h10": {
+      "grounded": true,
+      "sources": [
+        "2026 Academic Calendar.pdf",
+        "2926 March Student Guide.pdf"
+      ],
+      "answer": "Deepavali in 2026 is on 8 November (Sunday).",
+      "relevant": true
+    },
+    "h11": {
+      "grounded": true,
+      "sources": [
+        "Lecturer Cv Info.pdf"
+      ],
+      "answer": "Alvin Lim's research interests include:\n*   Deep learning\n*   Computer vision\n*   Image processing\n*   Software engineering",
+      "relevant": true
+    },
+    "hn1": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    },
+    "hn2": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    },
+    "hn3": {
+      "grounded": false,
+      "sources": [],
+      "answer": "I'm sorry, I couldn't find that specific information in the current data. Please contact the Student Service Centre email ssc@mmu.edu.my for further assistance.",
+      "correct_no_answer": true
+    }
+  }
+}

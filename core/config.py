@@ -30,14 +30,27 @@ def get_secret(key, default=None):
 
 
 # ── Storage paths ────────────────────────────────────────────────
-DATA_DIR = "./data"
-CHROMA_DIR = "./chroma_db"
-LOCATIONS_DIR = "./locations"
-LOCATIONS_XLSX = "./data/Location File.xlsx"
-ANNOUNCE_DIR = os.environ.get("EVENT_POSTERS_DIR", "./announcements")   # event poster images (folder name kept from the old Announcements feature)
-LEGACY_ANNOUNCEMENTS_JSON = "./announcements/announcements.json"
-APP_DB_PATH = os.environ.get("APP_DB_PATH", "./data/app.db")
-QUERY_LOG_PATH = "./data/query_log.jsonl"
+# Everything that must survive a restart lives under these paths. To deploy with a
+# persistent volume, set MMU_STORAGE_DIR to the mount point (or override any single
+# path with its own variable). Source PDFs, the vector index, location photos, event
+# posters and the SQLite database then all move together.
+_ROOT = os.environ.get("MMU_STORAGE_DIR", ".")
+
+
+def _path(env, relative):
+    return os.environ.get(env) or os.path.join(_ROOT, relative)
+
+
+DATA_DIR = _path("DATA_DIR", "data")                          # source PDFs + Location File.xlsx
+CHROMA_DIR = _path("CHROMA_DIR", "chroma_db")                 # vector index (rebuild: build_database.py)
+LOCATIONS_DIR = _path("LOCATION_IMAGES_DIR", "locations")     # location photos
+LOCATIONS_XLSX = os.path.join(DATA_DIR, "Location File.xlsx")
+ANNOUNCE_DIR = _path("EVENT_POSTERS_DIR", "announcements")    # event posters
+APP_DB_PATH = _path("APP_DB_PATH", os.path.join("data", "app.db"))   # events, locations, query log
+# One-time migration sources (read once, then ignored):
+LEGACY_ANNOUNCEMENTS_JSON = os.path.join(ANNOUNCE_DIR, "announcements.json")
+LEGACY_LOCATIONS_JSON = os.path.join(LOCATIONS_DIR, "locations.json")
+QUERY_LOG_PATH = os.path.join(DATA_DIR, "query_log.jsonl")
 
 # ── Embedding backend ────────────────────────────────────────────
 # "local"  -> sentence-transformers via langchain-huggingface. No API key,
@@ -165,6 +178,24 @@ TRANSCRIBE_MODEL = LLM_MODEL   # Gemini accepts audio; same key, same model as a
 # API quota on every click and needs audio streaming back, so it is not used.
 TTS_ENABLED = True
 
-# ── Chat rate limit (per browser session; typed, quick-query and voice all count) ──
-CHAT_RATE_LIMIT_MAX = 10
-CHAT_RATE_LIMIT_WINDOW_SECONDS = 60
+# ── Chat rate limit (per browser session; typed, quick-query and voice transcription all count) ──
+CHAT_RATE_LIMIT_MAX = 20
+CHAT_RATE_LIMIT_WINDOW_SECONDS = 600   # 20 questions / 10 minutes
+
+# ── Privacy ──────────────────────────────────────────────────────
+QUERY_LOG_RETENTION_DAYS = 180
+PRIVACY_CONTACT = "the project owner (Goh Hui Jun) via the FIST FYP coordinator"
+CHAT_MAX_CHARS = 500
+
+# ── Admin uploads ────────────────────────────────────────────────
+PDF_MAX_BYTES = 25 * 1024 * 1024
+LOCATION_IMAGE_MAX_WIDTH = 1000
+
+# ── Query expansion: students and the documents use different words ──
+# Each trigger word found in a (English) search query appends its document-side
+# synonym — the original words are kept. Measured on eval/goldset*.json.
+QUERY_EXPANSIONS = {
+    "subject": "course", "subjects": "courses", "withdraw": "withdrawal", "semester": "trimester", "semesters": "trimesters",
+    "january": "jan", "february": "feb", "march": "mar", "april": "apr", "june": "jun", "july": "jul",
+    "august": "aug", "september": "sep", "october": "oct", "november": "nov", "december": "dec",
+}

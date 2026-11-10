@@ -1,6 +1,37 @@
+# MMU brand: blue #0033A0, red #E31837. Light and dark variants; the sidebar is
+# always MMU blue with the red as its accent (active page, primary buttons).
+
 [theme]
-primaryColor = "#E31837"  # MMU Red (Used for buttons and highlights)
-backgroundColor = "#FFFFFF" # Clean white background
-secondaryBackgroundColor = "#F0F2F6" # Light grey for chat bubbles
-textColor = "#262730" # Dark grey for readable text
-font = "sans serif"
+base = "light"
+primaryColor = "#0033A0"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F6FC"
+textColor = "#1F2937"
+linkColor = "#0033A0"
+font = "sans-serif"
+baseRadius = "0.6rem"
+buttonRadius = "0.6rem"
+
+[theme.sidebar]
+primaryColor = "#E31837"
+backgroundColor = "#002B7F"
+secondaryBackgroundColor = "#12409A"
+textColor = "#FFFFFF"
+linkColor = "#FFFFFF"
+
+[theme.dark]
+primaryColor = "#5B8DEF"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#1A2235"
+textColor = "#E5E7EB"
+linkColor = "#8FB3FF"
+
+[theme.dark.sidebar]
+primaryColor = "#FF4D63"
+backgroundColor = "#0B1F4D"
+secondaryBackgroundColor = "#15306B"
+textColor = "#FFFFFF"
+linkColor = "#FFFFFF"
+
+[server]
+maxUploadSize = 20

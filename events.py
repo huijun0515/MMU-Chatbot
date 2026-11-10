@@ -22,88 +22,12 @@ from core import config, events_db as db
 from core.logging_setup import logger
 from core.posters import PosterError, delete_poster, poster_path, save_poster
 from locations import get_location, list_locations
+from ui.layout import page_footer, page_header
+from ui.styles import CATEGORY_COLOURS
 
 esc = html.escape
 
-CATEGORY_COLOURS = {
-    "Academic Talk": "#0B2A6F", "Career": "#0A2F7A", "Sports": "#B5122B",
-    "Clubs & Societies": "#1F3A8A", "Faculty": "#2D3142", "Other": "#3B4A6B",
-}
 
-_CSS = """
-<style>
-.ev-eyebrow { font-size:.72rem; font-weight:700; letter-spacing:.08em; color:#0033A0; text-transform:uppercase; }
-.ev-h1 { font-size:2.1rem; font-weight:800; color:#111827; margin:0; line-height:1.15; }
-.ev-sub { color:#4b5563; margin:2px 0 14px; }
-.ev-tag { display:inline-block; background:#EEF3FF; color:#0033A0; font-size:.7rem; font-weight:700;
-          padding:3px 10px; border-radius:999px; }
-.ev-badge-red { display:inline-block; background:#E61932; color:#fff; font-size:.72rem; font-weight:700;
-                padding:3px 11px; border-radius:999px; margin-right:6px; }
-.ev-badge-blue { display:inline-block; background:rgba(255,255,255,.18); color:#fff; font-size:.72rem;
-                 font-weight:700; padding:3px 11px; border-radius:999px; }
-
-/* hero */
-.st-key-ev_hero { background:#0033A0; border-radius:20px; padding:0 !important; overflow:hidden; }
-.st-key-ev_hero [data-testid="stHorizontalBlock"] { gap:0 !important; align-items:stretch; }
-.st-key-ev_hero [data-testid="stColumn"]:first-child { position:relative; min-height:340px; }
-.st-key-ev_hero [data-testid="stColumn"]:first-child [data-testid="stElementContainer"],
-.st-key-ev_hero [data-testid="stColumn"]:first-child [data-testid="stVerticalBlock"],
-.st-key-ev_hero [data-testid="stColumn"]:first-child [data-testid="stMarkdown"] { position:static !important; }
-.ev-hero-poster { position:absolute !important; inset:0; background-size:cover; background-position:center;
-                  display:flex; align-items:flex-end; padding:28px; box-sizing:border-box; }
-.ev-hero-poster span { color:#fff; font-size:2.3rem; font-weight:800; line-height:1.05; text-transform:uppercase; }
-.ev-hero-text { padding:26px 0 6px; color:#fff; }
-.ev-hero-text h2 { color:#fff; font-size:1.7rem; line-height:1.2; margin:12px 0 14px; padding:0; }
-.ev-hero-row { margin:5px 0; font-size:.95rem; color:#fff; }
-.ev-hero-desc { color:rgba(255,255,255,.85); font-size:.88rem; margin:12px 0 4px; }
-.st-key-ev_hero button, .st-key-ev_hero a[data-testid^="stBaseLinkButton"] {
-    border-radius:10px !important; font-weight:700 !important; }
-.st-key-ev_hero button, .st-key-ev_hero [data-testid="stDownloadButton"] button {
-    background:transparent !important; color:#fff !important; border:1px solid rgba(255,255,255,.55) !important; }
-.st-key-ev_hero a[data-testid="stBaseLinkButton-primary"] { background:#E61932 !important; color:#fff !important; border:none !important; }
-.st-key-ev_hero [data-testid="stColumn"]:last-child { padding:0 28px 24px; }
-.st-key-ev_hero [data-testid="stColumn"]:last-child [data-testid="stColumn"] { padding:0 !important; min-height:0; }
-.st-key-ev_hero .stButton button[kind="tertiary"] { border:none !important; text-decoration:underline; padding:0; }
-
-/* cards */
-[class*="st-key-evc-"] { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; gap:0 !important; padding:0 !important; }
-[class*="st-key-evc-"] [data-testid="stElementContainer"] { margin:0; }
-[class*="st-key-evc-"] [data-testid="stHorizontalBlock"] { flex-wrap:nowrap !important; align-items:center; padding:0 16px 10px; gap:.5rem; }
-[class*="st-key-evc-"] [data-testid="stColumn"] { min-width:0 !important; }
-[class*="st-key-evc-"] button { color:#0033A0 !important; font-weight:700 !important; padding:0 !important; justify-content:flex-end; }
-.ev-card { background:transparent; }
-.ev-poster { position:relative; aspect-ratio:16/9; background-size:cover; background-position:center;
-             display:flex; align-items:flex-end; padding:14px; box-sizing:border-box; }
-.ev-poster b { color:#fff; font-size:1.25rem; font-weight:800; text-transform:uppercase; line-height:1.1;
-             display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-.ev-date { position:absolute; top:10px; left:10px; background:#fff; border-radius:10px; text-align:center;
-           padding:4px 10px; line-height:1.05; box-shadow:0 1px 4px rgba(0,0,0,.15); }
-.ev-date b { display:block; font-size:1.25rem; color:#111827; }
-.ev-date span { font-size:.62rem; font-weight:800; color:#E61932; letter-spacing:.06em; }
-.ev-body { padding:12px 16px 8px; }
-.ev-title { font-weight:700; font-size:1rem; color:#111827; margin:8px 0 6px; line-height:1.3; min-height:2.6em;
-            display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.ev-meta { font-size:.82rem; color:#4b5563; margin:2px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ev-org { font-size:.78rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ev-orgline { border-top:1px solid #f1f5f9; margin:0 16px 8px; }
-.ev-past { opacity:.55; filter:grayscale(.6); }
-.ev-empty { text-align:center; padding:56px 20px; color:#64748b; border:2px dashed #cbd5e1; border-radius:16px; background:#f8fafc; }
-.ev-foot { color:#6b7280; font-size:.8rem; margin-top:22px; }
-
-/* detail dialog: bottom sheet on phones */
-.ev-dlg-poster { width:100%; aspect-ratio:16/9; max-height:320px; background-size:cover; background-position:center; border-radius:14px;
-                 display:flex; align-items:flex-end; padding:20px; box-sizing:border-box; }
-.ev-dlg-poster b { color:#fff; font-size:1.8rem; font-weight:800; text-transform:uppercase; line-height:1.05; }
-.ev-dlg-box { border:1px solid #e5e7eb; border-radius:12px; padding:10px 14px; margin:10px 0; }
-@media (max-width: 640px) {
-  .ev-h1 { font-size:1.7rem; }
-  .st-key-ev_hero [data-testid="stColumn"]:first-child { min-height:210px; }
-  div[data-testid="stDialog"], div[data-testid="stDialog"] > div { align-items:flex-end !important; }
-  div[data-testid="stDialog"] div[role="dialog"] { width:100% !important; max-width:100% !important; margin:0 !important;
-      border-radius:22px 22px 0 0 !important; max-height:92vh; }
-}
-</style>
-"""
 
 
 # ── small helpers ─────────────────────────────────────────────────────────
@@ -134,7 +58,7 @@ def _poster_style(event, width=700):
     uri = _poster_uri(path, os.path.getmtime(path), width) if path else None
     if uri:
         return f"background-image:url('{uri}');", True
-    return f"background:{CATEGORY_COLOURS.get(event['category'], '#3B4A6B')};", False
+    return f"background:{CATEGORY_COLOURS.get(event['category'], CATEGORY_COLOURS['Other'])};", False
 
 
 def _venue(event):
@@ -167,27 +91,27 @@ def _event_dialog(event_id):
     inner = "" if has_img else f"<b>{esc(event['title'])}</b>"
     st.markdown(f"<div class='ev-dlg-poster' style=\"{style}\">{inner}</div>", unsafe_allow_html=True)
     past = db.is_past(event)
-    st.markdown(f"<span class='ev-tag'>{esc(event['category'])}</span> "
-                + (f"<span class='ev-tag' style='background:#fee2e2;color:#b91c1c'>{db.countdown_label(event)}</span>"
-                   if not past else "<span class='ev-tag' style='background:#f1f5f9;color:#475569'>Ended</span>"),
+    st.markdown(f"<span class='chip'>{esc(event['category'])}</span> "
+                + (f"<span class='badge badge-bad'>{db.countdown_label(event)}</span>"
+                   if not past else "<span class='badge badge-muted'>Ended</span>"),
                 unsafe_allow_html=True)
-    st.markdown(f"<div style='font-size:1.55rem;font-weight:800;color:#111827;margin:6px 0'>{esc(event['title'])}</div>",
+    st.markdown(f"<div class='dlg-title'>{esc(event['title'])}</div>",
                 unsafe_allow_html=True)
     venue = _venue(event)
     st.markdown(
         "<div class='ev-dlg-box'>"
-        f"<b>📅 {db.format_date(event)}</b><br><span style='color:#4b5563'>{db.format_time(event)}</span>"
-        + (f"<hr style='margin:8px 0;border:none;border-top:1px solid #e5e7eb'><b>📍 {esc(venue)}</b>" if venue else "")
+        f"<b>📅 {db.format_date(event)}</b><br><span class='dlg-text'>{db.format_time(event)}</span>"
+        + (f"<hr class='dlg-sep'><b>📍 {esc(venue)}</b>" if venue else "")
         + "</div>", unsafe_allow_html=True)
     loc = _known_location(event)
     if loc and st.button("Where is this?", key=f"dlg_where_{event_id}", type="tertiary"):
         _go_to_place(event["venue_location_id"])
         st.rerun()
     if event["description"]:
-        st.markdown(f"<div style='color:#374151'>{esc(event['description']).replace(chr(10), '<br>')}</div>",
+        st.markdown(f"<div class='dlg-text'>{esc(event['description']).replace(chr(10), '<br>')}</div>",
                     unsafe_allow_html=True)
     if event["organiser"]:
-        st.markdown(f"<div style='color:#6b7280;margin-top:8px'>Organised by <b>{esc(event['organiser'])}</b></div>",
+        st.markdown(f"<div class='dlg-muted'>Organised by <b>{esc(event['organiser'])}</b></div>",
                     unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
@@ -243,7 +167,7 @@ def _card_html(event, past=False):
         f"<div class='ev-poster' style=\"{style}\">"
         f"<div class='ev-date'><b>{start.day}</b><span>{start.strftime('%b').upper()}</span></div>{inner}</div>"
         "<div class='ev-body'>"
-        f"<span class='ev-tag'>{esc(event['category'])}</span>"
+        f"<span class='chip'>{esc(event['category'])}</span>"
         f"<div class='ev-title'>{esc(event['title'])}</div>"
         f"<div class='ev-meta'>🕒 {esc(when)}</div>"
         f"<div class='ev-meta'>📍 {esc(venue) if venue else '&nbsp;'}</div></div></div>"
@@ -273,13 +197,11 @@ def _matches_search(event, q):
 def render_events_page():
     _init_db_once()
     now = db.now()
-    st.markdown(_CSS, unsafe_allow_html=True)
 
     head, search = st.columns([3, 1.4])
     with head:
-        st.markdown("<div class='ev-eyebrow'>MMU Melaka · Campus Life</div><div class='ev-h1'>Events</div>"
-                    "<div class='ev-sub'>Talks, career fairs, sports and club activities happening on campus.</div>",
-                    unsafe_allow_html=True)
+        page_header("Events", "Talks, career fairs, sports and club activities happening on campus.",
+                    eyebrow="MMU Melaka · Campus Life")
     with search:
         query = st.text_input("Search", placeholder="🔎 Search events, venues, organisers", key="ev_search",
                               label_visibility="collapsed").strip()
@@ -288,7 +210,8 @@ def render_events_page():
     past = db.past_events(now)
 
     if not upcoming and not past:
-        st.markdown("<div class='ev-empty'>🗓️ No upcoming events — check back soon.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='empty'>🗓️ No upcoming events — check back soon.</div>", unsafe_allow_html=True)
+        page_footer()
         return
 
     hero = None if query else db.pick_hero(upcoming)
@@ -316,9 +239,9 @@ def render_events_page():
     if grid:
         _render_grid(grid, "evdet")
     elif upcoming:
-        st.markdown("<div class='ev-empty'>No events match your filters.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='empty'>No events match your filters.</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div class='ev-empty'>🗓️ No upcoming events — check back soon.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='empty'>🗓️ No upcoming events — check back soon.</div>", unsafe_allow_html=True)
 
     shown_past = [e for e in past if not query or _matches_search(e, query)]
     if shown_past:
@@ -326,8 +249,8 @@ def render_events_page():
                          "· moved here automatically after they end", expanded=False):
             st.caption("Shown greyed out, newest first.")
             _render_grid(shown_past[:config.PAST_EVENTS_LIMIT], "evpast", past=True)
-    st.markdown("<div class='ev-foot'>All times are Malaysia time (UTC+8). Event details are provided by "
-                "organisers; check with them for changes.</div>", unsafe_allow_html=True)
+    st.caption("All times are Malaysia time (UTC+8). Event details are provided by organisers; check with them for changes.")
+    page_footer()
 
 
 # ── admin ─────────────────────────────────────────────────────────────────
